@@ -1,6 +1,6 @@
-# my_learning_app
+# DevLog
 
-A new Flutter project.
+My first Flutter project for storage a guides in 42Heilbronn.
 
 ## Getting Started
 
