@@ -17,13 +17,13 @@ class Sidebar extends StatelessWidget {
       width: 280,
       color: AppColors.sidebarBackground,
       child: Column(
-        children: const [
+        children: [ // ВИДАЛЕНО const ПЕРЕД СПИСКОМ [1, 4, 5]
           HeaderLogoSection(),
           SearchBarWidget(),
           MenuNavigation(),
-          ModuleList(),
-          Spacer(),
-          SidebarFooter(),
+          ModuleList(), // Тепер може завантажувати дані з Hive [6, 7]
+          const Spacer(),
+          SidebarFooter(), // Тепер інтерактивний та підключений до Hive [8, 9]
         ],
       ),
     );

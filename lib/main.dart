@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:dev_log/theme/app_theme.dart'; // Повний шлях до теми [10-12]
+// Важливо: використовуйте назву проекту малими літерами (dev_log) [12-14]
+import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/models/module.dart';
+import 'package:dev_log/models/user_model.dart';
 import 'package:dev_log/screens/dashboard_screen.dart';
 
 void main() async {
+  // Гарантуємо ініціалізацію фреймворку перед запуском Hive [8, 11]
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Ініціалізація Hive для Flutter
   await Hive.initFlutter();
+  
+  // Реєстрація адаптерів для збереження ваших моделей у БД [8, 10]
   Hive.registerAdapter(ModuleAdapter());
+  Hive.registerAdapter(UserModelAdapter());
+  
+  // Відкриття "коробок" (boxes) для даних
   await Hive.openBox<Module>('modules');
+  await Hive.openBox<UserModel>('userBox');
   
   runApp(const DevLogApp());
 }
@@ -20,50 +31,16 @@ class DevLogApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'DevLog',
+      // Налаштування темного оформлення згідно з вашим макетом [11, 15]
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: AppColors.background,
+        textTheme: ThemeData.dark().textTheme.apply(
+          bodyColor: AppColors.textWhite,
+        ),
       ),
+      // Головний екран — "скелет" вашого додатку [9, 16]
       home: const DashboardScreen(),
-    );
-  }
-}
-
-3. Картка продовження навчання (lib/components/continue_card.dart)
-Виправлено помилку з відсутнім параметром timeAgo та додано імпорт теми.
-
-import 'package:flutter/material.dart';
-import 'package:dev_log/theme/app_theme.dart'; // Обов'язковий імпорт [17-19]
-
-class ContinueCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String timeAgo; // Тепер параметр оголошено [13, 14, 16]
-
-  const ContinueCard({
-    super.key, 
-    required this.title, 
-    required this.subtitle, 
-    required this.timeAgo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 250,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground, // Виправлено з .card [9, 20]
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: AppTextStyles.cardTitle),
-          Text(subtitle, style: AppTextStyles.body),
-          const SizedBox(height: 8),
-          Text(timeAgo, style: AppTextStyles.cardSubtitle),
-        ],
-      ),
     );
   }
 }
