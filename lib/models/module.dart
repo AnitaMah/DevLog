@@ -1,29 +1,55 @@
 import 'package:hive/hive.dart';
 
-part 'module.g.dart'; // Цей файл має з'явитися після генерації
+part 'module.g.dart';
 
 @HiveType(typeId: 0)
 class Module extends HiveObject {
   @HiveField(0)
-  final String id;  // Add unique ID
+  String id;
 
   @HiveField(1)
-  final String title;
+  String title;
 
   @HiveField(2)
-  final String description;  // Add description
+  String description;
 
   @HiveField(3)
-  final int notesCount;
+  int notesCount;
 
   @HiveField(4)
-  final DateTime createdAt;  // Add timestamp
+  String iconName;
+
+  @HiveField(5)
+  String? parentId;
+
+  @HiveField(6)
+  String? filePath;
+
+  @HiveField(7)
+  double progress;
+
+  // Зберігаємо саме як String, як і було
+  @HiveField(8)
+  String lastOpenedAt;
 
   Module({
     required this.id,
     required this.title,
-    required this.description,
-    required this.notesCount,
-    DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+    this.description = '',
+    this.notesCount = 0,
+    this.iconName = 'code',
+    this.parentId,
+    this.filePath,
+    this.progress = 0.0,
+    String? lastOpenedAt, // Змінено: приймаємо String, а не DateTime
+  }) : lastOpenedAt = lastOpenedAt ?? DateTime.now().toIso8601String();
+
+  DateTime getLastOpenedAt() {
+    return DateTime.parse(lastOpenedAt);
+  }
+
+  void updateLastOpenedAt() {
+    lastOpenedAt = DateTime.now().toIso8601String();
+    save();
+  }
 }

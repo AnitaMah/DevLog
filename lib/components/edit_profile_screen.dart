@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive/hive.dart';
 import 'package:dev_log/models/user_model.dart';
-import 'package:dev_log/theme/app_theme.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -11,52 +12,124 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  // Контролер для зчитування тексту з клавіатури
-  final _nameController = TextEditingController();
-  final Box<UserModel> _userBox = Hive.box<UserModel>('userBox');
+  final Box<UserModel> usersBox = Hive.box<UserModel>('users');
+  late UserModel _user;
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  File? _selectedAvatar;
 
   @override
   void initState() {
     super.initState();
-    // Попередньо заповнюємо поле поточним ім'ям з Hive
-    final currentUser = _userBox.get('currentUser');
-    if (currentUser != null) {
-      _nameController.text = currentUser.name;
+    // Отримуємо користувача з Hive або створюємо нового
+    _user = usersBox.getAt(0) ?? UserModel(
+      name: "Default User",
+      email: "default@example.com",
+    );
+    _nameController = TextEditingController(text: _user.name);
+    _emailController = TextEditingController(text: _user.email);
+    _selectedAvatar = _user.avatarPath != 'assets/images/default_avatar.png'
+        ? File(_user.avatarPath)
+        : null;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedAvatar = File(pickedFile.path);
+      });
     }
   }
 
   void _saveProfile() {
-    // Збереження введеного імені в Hive
-    _userBox.put('currentUser', UserModel(
-      name: _nameController.text,
-      email: "anita@42.fr", 
-    ));
-    Navigator.pop(context); // Повернення на головний екран
+    _user.name = _nameController.text;
+    _user.email = _emailController.text;
+    if (_selectedAvatar != null) {
+      _user.avatarPath = _selectedAvatar!.path;
+    }
+    _user.save();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Profile updated!")),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text("Edit Profile"), backgroundColor: AppColors.sidebarBackground),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
+      appBar: AppBar(
+        title: const Text("Edit Profile"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _saveProfile,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true, // Автоматично відкриває клавіатуру
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Enter your name",
-                labelStyle: TextStyle(color: Colors.white70),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.accentPurple)),
+            // Avatar
+            GestureDetector(
+              onTap: _pickAvatar,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: _selectedAvatar != null
+                        ? FileImage(_selectedAvatar!)
+                        : AssetImage(_user.avatarPath) as ImageProvider,
+                  ),
+                  const Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.edit, color: Colors.blue),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+
+            // Name field
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: "Name",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Email field
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: "Email",
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 24),
+
+            // Save button
             ElevatedButton(
               onPressed: _saveProfile,
-              child: const Text("Save Name"),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text("Save Changes"),
             ),
           ],
         ),

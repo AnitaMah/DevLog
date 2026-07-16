@@ -1,17 +1,17 @@
 import 'package:hive/hive.dart';
 
-part 'user_model.g.dart'; // Цей файл буде згенеровано автоматично [2]
+part 'user_model.g.dart';
 
-@HiveType(typeId: 1) // Використовуємо ID 1, оскільки ID 0 зазвичай для модулів
+@HiveType(typeId: 1)
 class UserModel extends HiveObject {
   @HiveField(0)
-  final String name;
+  String name; // Змінне поле
 
   @HiveField(1)
-  final String email;
+  String email; // Змінне поле
 
   @HiveField(2)
-  final String avatarPath;
+  String avatarPath; // Змінне поле
 
   UserModel({
     required this.name,

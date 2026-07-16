@@ -21,14 +21,18 @@ class ModuleAdapter extends TypeAdapter<Module> {
       title: fields[1] as String,
       description: fields[2] as String,
       notesCount: fields[3] as int,
-      createdAt: fields[4] as DateTime?,
+      iconName: fields[4] as String,
+      parentId: fields[5] as String?,
+      filePath: fields[6] as String?,
+      progress: fields[7] as double,
+      lastOpenedAt: fields[8] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Module obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,7 +42,15 @@ class ModuleAdapter extends TypeAdapter<Module> {
       ..writeByte(3)
       ..write(obj.notesCount)
       ..writeByte(4)
-      ..write(obj.createdAt);
+      ..write(obj.iconName)
+      ..writeByte(5)
+      ..write(obj.parentId)
+      ..writeByte(6)
+      ..write(obj.filePath)
+      ..writeByte(7)
+      ..write(obj.progress)
+      ..writeByte(8)
+      ..write(obj.lastOpenedAt);
   }
 
   @override

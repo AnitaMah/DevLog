@@ -1,29 +1,52 @@
+// 1. Усі імпорти мають бути на самому початку
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-// Важливо: використовуйте назву проекту малими літерами (dev_log) [12-14]
-import 'package:dev_log/theme/app_theme.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'dart:io';
+
+// Імпорти ваших локальних файлів
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/models/user_model.dart';
 import 'package:dev_log/screens/dashboard_screen.dart';
 
+// 2. Потім іде функція main
 void main() async {
-  // Гарантуємо ініціалізацію фреймворку перед запуском Hive [8, 11]
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Ініціалізація Hive для Flutter
-  await Hive.initFlutter();
-  
-  // Реєстрація адаптерів для збереження ваших моделей у БД [8, 10]
-  Hive.registerAdapter(ModuleAdapter());
-  Hive.registerAdapter(UserModelAdapter());
-  
-  // Відкриття "коробок" (boxes) для даних
-  await Hive.openBox<Module>('modules');
-  await Hive.openBox<UserModel>('userBox');
-  
-  runApp(const DevLogApp());
+
+  final appDir = await getApplicationDocumentsDirectory();
+  final hivePath = path.join(appDir.path, 'dev_log_data');
+
+  final dir = Directory(hivePath);
+  if (!await dir.exists()) {
+    await dir.create(recursive: true);
+  }
+
+  try {
+    await Hive.initFlutter(hivePath);
+
+    Hive.registerAdapter(ModuleAdapter());
+    Hive.registerAdapter(UserModelAdapter());
+
+    await Hive.openBox<Module>('modules');
+    await Hive.openBox<UserModel>('userBox');
+
+    runApp(const DevLogApp());
+  } catch (e) {
+    debugPrint("Error initializing Hive: $e");
+    runApp(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text("Failed to initialize app data. Please restart the app."),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
+// 3. Потім ідуть класи (наприклад, DevLogApp)
 class DevLogApp extends StatelessWidget {
   const DevLogApp({super.key});
 
@@ -32,14 +55,7 @@ class DevLogApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'DevLog',
-      // Налаштування темного оформлення згідно з вашим макетом [11, 15]
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: AppColors.background,
-        textTheme: ThemeData.dark().textTheme.apply(
-          bodyColor: AppColors.textWhite,
-        ),
-      ),
-      // Головний екран — "скелет" вашого додатку [9, 16]
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const DashboardScreen(),
     );
   }
