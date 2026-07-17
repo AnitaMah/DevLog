@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:dev_log/theme/app_theme.dart'; // Імпортуємо для кольорів
+import 'package:dev_log/theme/app_theme.dart';
 
 class ModuleInputDialog extends StatefulWidget {
   final Module? module;
   final bool isEditing;
-  final bool isSubModule;
+  final String? parentId; // Явно передаємо ID батька
 
   const ModuleInputDialog({
     super.key,
     this.module,
     this.isEditing = false,
-    this.isSubModule = false,
+    this.parentId, // Може бути null для кореневих модулів
   });
 
   @override
@@ -49,7 +48,7 @@ class _ModuleInputDialogState extends State<ModuleInputDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.sidebarBackground, // Темний фон діалогу
+      backgroundColor: AppColors.sidebarBackground,
       title: Text(widget.isEditing ? "Edit Module" : "Add Module", 
                   style: const TextStyle(color: Colors.white)),
       content: SingleChildScrollView(
@@ -59,66 +58,32 @@ class _ModuleInputDialogState extends State<ModuleInputDialog> {
             TextField(
               controller: _titleController,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Title", 
-                labelStyle: TextStyle(color: Colors.white70),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-              ),
+              decoration: const InputDecoration(labelText: "Title", labelStyle: TextStyle(color: Colors.white70)),
             ),
             TextField(
               controller: _descriptionController,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Description", 
-                labelStyle: TextStyle(color: Colors.white70),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-              ),
+              decoration: const InputDecoration(labelText: "Description", labelStyle: TextStyle(color: Colors.white70)),
             ),
             const SizedBox(height: 20),
-
-            // Icon selection
             DropdownButtonFormField<String>(
               value: _selectedIcon,
               dropdownColor: AppColors.sidebarBackground,
-              isExpanded: true,
-              items: _availableIcons.map((icon) {
-                return DropdownMenuItem<String>(
-                  value: icon,
-                  child: Row(
-                    children: [
-                      IconHelper.getFaIcon(icon, size: 18, color: Colors.white70),
-                      const SizedBox(width: 8),
-                      Text(icon, style: const TextStyle(color: Colors.white70)),
-                    ],
-                  ),
-                );
-              }).toList(),
+              items: _availableIcons.map((icon) => DropdownMenuItem(value: icon, child: Text(icon, style: const TextStyle(color: Colors.white70)))).toList(),
               onChanged: (val) => setState(() => _selectedIcon = val!),
-              decoration: const InputDecoration(
-                labelText: "Icon", 
-                labelStyle: TextStyle(color: Colors.white70),
-              ),
+              decoration: const InputDecoration(labelText: "Icon", labelStyle: TextStyle(color: Colors.white70)),
             ),
             const SizedBox(height: 20),
-
-            // File picker
-            if (widget.isSubModule)
-              OutlinedButton.icon(
-                onPressed: _pickFile,
-                icon: const Icon(Icons.attach_file, color: AppColors.accentPurple),
-                label: Text(
-                  _selectedFilePath == null ? "Attach File" : "File Selected",
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ),
+            OutlinedButton.icon(
+              onPressed: _pickFile,
+              icon: const Icon(Icons.attach_file, color: AppColors.accentPurple),
+              label: Text(_selectedFilePath == null ? "Attach File" : "File Selected", style: const TextStyle(color: Colors.white70)),
+            ),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
         ElevatedButton(
           onPressed: _submit,
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentPurple),
@@ -130,6 +95,7 @@ class _ModuleInputDialogState extends State<ModuleInputDialog> {
 
   void _submit() {
     final box = Hive.box<Module>('modules');
+    
     if (widget.isEditing && widget.module != null) {
       widget.module!.title = _titleController.text;
       widget.module!.description = _descriptionController.text;
@@ -142,10 +108,9 @@ class _ModuleInputDialogState extends State<ModuleInputDialog> {
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           title: _titleController.text,
           description: _descriptionController.text,
-          notesCount: 0,
           filePath: _selectedFilePath,
           iconName: _selectedIcon,
-          parentId: widget.isSubModule ? widget.module?.id : null,
+          parentId: widget.parentId, // Використовуємо переданий parentId
         ),
       );
     }
