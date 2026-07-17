@@ -20,7 +20,7 @@ class Module extends HiveObject {
   String iconName;
 
   @HiveField(5)
-  String? parentId;
+  String? parentId; // Якщо null — це головний модуль
 
   @HiveField(6)
   String? filePath;
@@ -28,9 +28,12 @@ class Module extends HiveObject {
   @HiveField(7)
   double progress;
 
-  // Зберігаємо саме як String, як і було
   @HiveField(8)
   String lastOpenedAt;
+
+  // Нове поле для зручного зберігання зв'язків
+  @HiveField(9)
+  List<String> subModuleIds;
 
   Module({
     required this.id,
@@ -41,8 +44,18 @@ class Module extends HiveObject {
     this.parentId,
     this.filePath,
     this.progress = 0.0,
-    String? lastOpenedAt, // Змінено: приймаємо String, а не DateTime
-  }) : lastOpenedAt = lastOpenedAt ?? DateTime.now().toIso8601String();
+    String? lastOpenedAt,
+    List<String>? subModuleIds,
+  })  : lastOpenedAt = lastOpenedAt ?? DateTime.now().toIso8601String(),
+        subModuleIds = subModuleIds ?? [];
+
+  // Метод для додавання підмодуля
+  void addSubModule(String id) {
+    if (!subModuleIds.contains(id)) {
+      subModuleIds.add(id);
+      save();
+    }
+  }
 
   DateTime getLastOpenedAt() {
     return DateTime.parse(lastOpenedAt);
