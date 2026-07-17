@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/components/recent_module_card.dart';
+import 'package:dev_log/theme/app_theme.dart';
 
 /// Віджет для відображення секції "Continue where you left off".
 /// Показує модулі, які були відкриті протягом останніх 24 годин.
@@ -15,18 +16,11 @@ class RecentModulesSection extends StatelessWidget {
     return ValueListenableBuilder<Box<Module>>(
       valueListenable: modulesBox.listenable(),
       builder: (context, box, _) {
-        // Фільтруємо модулі, які були відкриті протягом останніх 24 годин
         final recentModules = box.values
-            .where((module) {
-              final lastOpened = module.getLastOpenedAt();
-              final now = DateTime.now();
-              return now.difference(lastOpened).inHours < 24;
-            })
+            .where((module) => DateTime.now().difference(module.getLastOpenedAt()).inHours < 24)
             .toList()
-          // Сортуємо за часом останнього відкриття (новіші першими)
           ..sort((a, b) => b.getLastOpenedAt().compareTo(a.getLastOpenedAt()));
 
-        // Якщо немає недавніх модулів, не показуємо секцію
         if (recentModules.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -34,35 +28,28 @@ class RecentModulesSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Заголовок секції
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Text(
                 "Continue where you left off",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.title,
               ),
             ),
-            // Список недавніх модулів (горізонтальний скрол)
+            const SizedBox(height: AppSpacing.md),
             SizedBox(
-              height: 180,
+              height: 160,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 itemCount: recentModules.length,
                 itemBuilder: (context, index) {
                   final module = recentModules[index];
                   return Padding(
-                    padding: const EdgeInsets.only(right: 16.0),
+                    padding: EdgeInsets.only(right: index == recentModules.length - 1 ? 0 : AppSpacing.md),
                     child: RecentModuleCard(
                       module: module,
                       onTap: () {
-                        // Оновлюємо час останнього відкриття
                         module.updateLastOpenedAt();
-                        // Тут можна додати навігацію до екрану модуля
                       },
                     ),
                   );

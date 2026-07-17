@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
+import 'package:dev_log/theme/app_theme.dart';
 
 class MenuNavigation extends StatelessWidget {
   const MenuNavigation({super.key});
@@ -16,37 +16,45 @@ class MenuNavigation extends StatelessWidget {
 
         return ListView.builder(
           shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
           itemCount: rootModules.length,
           itemBuilder: (context, index) {
             final module = rootModules[index];
-            final subModules = box.values
-                .where((m) => m.parentId == module.id)
-                .toList();
+            final subModules = box.values.where((m) => m.parentId == module.id).toList();
 
-            return ExpansionTile(
-              leading: IconHelper.getFaIcon(
-                module.iconName,
-                color: Colors.white70,
-                size: 20,
+            return Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                leading: IconHelper.getFaIcon(
+                  module.iconName,
+                  color: AppColors.textSecondary,
+                  size: 18,
+                ),
+                title: Text(
+                  module.title,
+                  style: AppTextStyles.cardTitle,
+                ),
+                children: subModules.map((sub) {
+                  return ListTile(
+                    contentPadding: const EdgeInsets.only(left: 56, right: AppSpacing.lg),
+                    dense: true,
+                    leading: IconHelper.getFaIcon(
+                      sub.iconName,
+                      color: AppColors.textDisabled,
+                      size: 14,
+                    ),
+                    title: Text(
+                      sub.title,
+                      style: AppTextStyles.body,
+                    ),
+                    onTap: () {
+                      // Логіка переходу
+                    },
+                  );
+                }).toList(),
               ),
-              title: Text(
-                module.title,
-                style: const TextStyle(color: Colors.white),
-              ),
-              children: subModules.map((sub) {
-                return ListTile(
-                  contentPadding: const EdgeInsets.only(left: 40),
-                  leading: IconHelper.getFaIcon(
-                    sub.iconName,
-                    color: Colors.white38,
-                    size: 16,
-                  ),
-                  title: Text(
-                    sub.title,
-                    style: const TextStyle(color: Colors.white60),
-                  ),
-                );
-              }).toList(),
             );
           },
         );

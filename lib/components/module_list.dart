@@ -19,13 +19,14 @@ class ModuleList extends StatelessWidget {
           return const Padding(
             padding: EdgeInsets.all(16.0),
             child: Center(
-              child: Text('No modules yet. Add one!', style: TextStyle(color: Colors.white70)),
+              child: Text('No modules yet.', style: TextStyle(color: Colors.white38, fontSize: 12)),
             ),
           );
         }
 
         return ListView.builder(
           shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(), // Використовуйте з SingleChildScrollView в Sidebar
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: box.length,
           itemBuilder: (context, index) {
@@ -33,34 +34,21 @@ class ModuleList extends StatelessWidget {
             if (module == null) return const SizedBox.shrink();
             
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: AppColors.cardBackground,
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.cardBackground, // Темний фон картки[cite: 7]
+                borderRadius: BorderRadius.circular(8),
               ),
               child: ListTile(
+                dense: true,
                 onTap: () => showDialog(
                   context: context,
                   builder: (context) => ModuleInputDialog(module: module, isEditing: true),
                 ),
                 title: Text(module.title, style: AppTextStyles.cardTitle),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 4),
-                    Text("${module.notesCount} notes", style: AppTextStyles.cardSubtitle),
-                    const SizedBox(height: 8),
-                    // Відображення прогресу
-                    LinearProgressIndicator(
-                      value: module.progress,
-                      backgroundColor: Colors.white10,
-                      color: AppColors.accentPurple,
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                ),
+                subtitle: Text("${module.notesCount} notes", style: AppTextStyles.cardSubtitle),
                 trailing: IconButton(
-                  icon: const Icon(Icons.close, size: 16, color: Colors.white54),
+                  icon: const Icon(Icons.close, size: 14, color: Colors.white30),
                   onPressed: () => _showDeleteConfirmationDialog(context, module),
                 ),
               ),
@@ -75,17 +63,20 @@ class ModuleList extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Module"),
-        content: Text("Are you sure you want to delete '${module.title}'?"),
+        backgroundColor: AppColors.sidebarBackground, // Відповідний темний фон[cite: 7]
+        title: const Text("Delete Module", style: TextStyle(color: Colors.white)),
+        content: Text("Delete '${module.title}'?", style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text("Cancel", style: TextStyle(color: Colors.white54))
+          ),
           TextButton(
             onPressed: () {
-              module.delete();
+              module.delete(); // Логіка видалення
               Navigator.pop(context);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("Delete"),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

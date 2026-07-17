@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/components/add_module_card.dart';
@@ -17,123 +16,89 @@ class ModuleGrid extends StatelessWidget {
       builder: (context, Box<Module> box, _) {
         final modules = box.values.where((m) => m.parentId == null).toList();
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            childAspectRatio: 1.1,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ...modules.map((m) => _buildCard(context, m, box)),
+              const SizedBox(width: 220, child: AddModuleCard()),
+            ],
           ),
-          itemCount: modules.length + 1,
-          itemBuilder: (context, index) {
-            if (index == modules.length) {
-              return const AddModuleCard();
-            }
-
-            final module = modules[index];
-
-            return Stack(
-              children: [
-                InkWell(
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (context) => ModuleInputDialog(
-                      module: module,
-                      isEditing: true,
-                    ),
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        IconHelper.getFaIcon(
-                          module.iconName,
-                          size: 32,
-                          color: AppColors.accentPurple,
-                        ),
-                        const Spacer(),
-                        Text(
-                          module.title,
-                          style: AppTextStyles.cardTitle,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "${module.notesCount} notes",
-                          style: AppTextStyles.cardSubtitle,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      size: 16,
-                      color: Colors.white54,
-                    ),
-                    onPressed: () => _showDeleteConfirmationDialog(
-                      context,
-                      module,
-                      box,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
         );
       },
     );
   }
 
-  void _showDeleteConfirmationDialog(
-    BuildContext context,
-    Module module,
-    Box<Module> box,
-  ) {
-    final submodulesCount = box.values
-        .where((m) => m.parentId == module.id)
-        .length;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Module"),
-        content: Text(
-          submodulesCount > 0
-              ? "Are you sure you want to delete '${module.title}'? This will also delete $submodulesCount submodules and ${module.notesCount} notes."
-              : "Are you sure you want to delete '${module.title}'? This will delete ${module.notesCount} notes.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+  Widget _buildCard(BuildContext context, Module module, Box<Module> box) {
+    return Container(
+      width: 220,
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Stack(
+        children: [
+          InkWell(
+            onTap: () => showDialog(
+              context: context, 
+              builder: (c) => ModuleInputDialog(module: module, isEditing: true)
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  IconHelper.getFaIcon(module.iconName, size: 20, color: AppColors.accentPurple),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(module.title, style: AppTextStyles.cardTitle, overflow: TextOverflow.ellipsis),
+                        Text("${module.notesCount} notes", style: AppTextStyles.cardSubtitle),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              _deleteModuleAndSubmodules(module, box);
-              Navigator.pop(context);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("Delete"),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: IconButton(
+              icon: const Icon(Icons.close, size: 14, color: Colors.white30),
+              onPressed: () => _showDeleteConfirmationDialog(context, module, box),
+            ),
           ),
         ],
       ),
     );
   }
 
+  void _showDeleteConfirmationDialog(BuildContext context, Module module, Box<Module> box) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Module"),
+        content: const Text("Are you sure?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              _deleteModuleAndSubmodules(module, box);
+              Navigator.pop(context);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Збережена функція видалення
   void _deleteModuleAndSubmodules(Module module, Box<Module> box) {
     final submodules = box.values
         .where((m) => m.parentId == module.id)

@@ -4,7 +4,6 @@ import 'package:dev_log/models/module.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
 
 /// Віджет для відображення картки недавнього модуля.
-/// Використовується у секції "Continue where you left off".
 class RecentModuleCard extends StatelessWidget {
   final Module module;
   final VoidCallback onTap;
@@ -15,97 +14,64 @@ class RecentModuleCard extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Форматує час у зручний для користувача вигляд (наприклад, "5 min ago").
   String _formatTimeAgo(DateTime lastOpened) {
     final now = DateTime.now();
     final difference = now.difference(lastOpened);
 
-    if (difference.inMinutes < 60) {
-      return "${difference.inMinutes} min ago";
-    } else if (difference.inHours < 24) {
-      return "${difference.inHours} hour${difference.inHours != 1 ? 's' : ''} ago";
-    } else if (difference.inDays < 7) {
-      return "${difference.inDays} day${difference.inDays != 1 ? 's' : ''} ago";
-    } else {
-      return "${(difference.inDays / 7).floor()} week${(difference.inDays / 7).floor() != 1 ? 's' : ''} ago";
-    }
+    if (difference.inMinutes < 60) return "${difference.inMinutes} min ago";
+    if (difference.inHours < 24) return "${difference.inHours}h ago";
+    if (difference.inDays < 7) return "${difference.inDays}d ago";
+    return "${(difference.inDays / 7).floor()}w ago";
   }
 
   @override
   Widget build(BuildContext context) {
-    final lastOpened = module.getLastOpenedAt();
-    final timeAgo = _formatTimeAgo(lastOpened);
+    final timeAgo = _formatTimeAgo(module.getLastOpenedAt());
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 280,
+        width: 240, // Зменшено ширину для компактності
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.cardBackground, // Темний фон картки[cite: 7, 16]
+          borderRadius: BorderRadius.circular(8), // Строгіші кути
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Іконка та заголовок
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconHelper.getFaIcon(
-                    module.iconName,
-                    color: AppColors.accentPurple,
-                    size: 20,
-                  ),
+                IconHelper.getFaIcon(
+                  module.iconName,
+                  color: AppColors.accentPurple,
+                  size: 18,
                 ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      module.title,
-                      style: AppTextStyles.cardTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      module.description.isNotEmpty
-                          ? module.description
-                          : "No description",
-                      style: AppTextStyles.cardSubtitle.copyWith(
-                        color: AppColors.accentPurple,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    module.title,
+                    style: AppTextStyles.cardTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // Опис модуля
+            const SizedBox(height: 12),
             Text(
-              module.description,
+              module.description.isNotEmpty ? module.description : "No description",
               style: AppTextStyles.body,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
-            // Час останнього відкриття та іконка закладки
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(timeAgo, style: AppTextStyles.smallText),
-                const Icon(
-                  Icons.bookmark_border,
-                  color: Colors.white38,
-                  size: 18,
-                ),
+                const Icon(Icons.bookmark_border, color: Colors.white24, size: 14),
               ],
             ),
           ],

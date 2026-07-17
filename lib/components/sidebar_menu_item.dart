@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
-
-// Імпортуйте файл, де знаходиться ваш EditProfileScreen
-import '../screens/edit_profile_screen.dart'; 
-
 import '../components/header_logo_section.dart';
 import '../components/search_bar_widget.dart';
 import '../components/menu_navigation.dart';
 import '../components/module_list.dart';
 import '../components/sidebar_footer.dart';
-
 import '../theme/app_theme.dart';
 
 class Sidebar extends StatelessWidget {
@@ -20,28 +15,26 @@ class Sidebar extends StatelessWidget {
       width: 280,
       color: AppColors.sidebarBackground,
       child: Column(
-        // Прибрано 'const', оскільки тепер тут є динамічний ListTile
         children: [
           const HeaderLogoSection(),
           const SearchBarWidget(),
-          const MenuNavigation(),
-          const ModuleList(),
           
-          // Додаємо ListTile сюди
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text("Edit Profile"),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EditProfileScreen(),
-                ),
-              );
-            },
+          // Використовуємо Expanded, щоб меню не виходило за межі при великій кількості модулів
+          const Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  MenuNavigation(),
+                  ModuleList(),
+                ],
+              ),
+            ),
           ),
           
-          const Spacer(),
+          // Розділювач перед футером для візуального акценту
+          const Divider(color: Colors.white10, height: 1),
+          
+          // Профіль тепер інтегрований у футер
           const SidebarFooter(),
         ],
       ),

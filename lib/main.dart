@@ -1,52 +1,29 @@
-// 1. Усі імпорти мають бути на самому початку
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
-import 'dart:io';
-
-// Імпорти ваших локальних файлів
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/models/user_model.dart';
 import 'package:dev_log/screens/dashboard_screen.dart';
+import 'package:dev_log/theme/app_theme.dart';
 
-// 2. Потім іде функція main
 void main() async {
+  // 1. Обов'язково для ініціалізації Flutter-біндінгів
   WidgetsFlutterBinding.ensureInitialized();
 
-  final appDir = await getApplicationDocumentsDirectory();
-  final hivePath = path.join(appDir.path, 'dev_log_data');
+  // 2. Ініціалізація Hive
+  await Hive.initFlutter();
 
-  final dir = Directory(hivePath);
-  if (!await dir.exists()) {
-    await dir.create(recursive: true);
-  }
+  // 3. Реєстрація адаптерів
+  // Важливо: ці адаптери створюються автоматично командою 'flutter pub run build_runner build'
+  Hive.registerAdapter(ModuleAdapter()); 
+  Hive.registerAdapter(UserModelAdapter());
 
-  try {
-    await Hive.initFlutter(hivePath);
+  // 4. ВІДКРИТТЯ БОКСІВ
+  await Hive.openBox<Module>('modules');
+  await Hive.openBox<UserModel>('userBox');
 
-    Hive.registerAdapter(ModuleAdapter());
-    Hive.registerAdapter(UserModelAdapter());
-
-    await Hive.openBox<Module>('modules');
-    await Hive.openBox<UserModel>('userBox');
-
-    runApp(const DevLogApp());
-  } catch (e) {
-    debugPrint("Error initializing Hive: $e");
-    runApp(
-      const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Text("Failed to initialize app data. Please restart the app."),
-          ),
-        ),
-      ),
-    );
-  }
+  runApp(const DevLogApp());
 }
 
-// 3. Потім ідуть класи (наприклад, DevLogApp)
 class DevLogApp extends StatelessWidget {
   const DevLogApp({super.key});
 
@@ -55,7 +32,15 @@ class DevLogApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'DevLog',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppColors.background,
+        fontFamily: 'Roboto', 
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.accentPurple,
+          surface: AppColors.background,
+        ),
+      ),
       home: const DashboardScreen(),
     );
   }

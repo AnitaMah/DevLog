@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart'; // Додано для Widget і Color
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 /// Helper class for managing module icons.
@@ -17,6 +17,9 @@ class IconHelper {
     'terminal': FontAwesomeIcons.terminal,
     'linux': FontAwesomeIcons.linux,
     'database': FontAwesomeIcons.database,
+    'book': FontAwesomeIcons.book, // Додано для нотаток
+    'gear': FontAwesomeIcons.gear, // Додано для налаштувань
+    'pen': FontAwesomeIcons.pen,   // Додано для редагування
   };
 
   /// Returns the [FaIconData] for the given icon name.

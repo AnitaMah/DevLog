@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dev_log/components/module_input_dialog.dart';
+import 'package:dev_log/theme/app_theme.dart';
 
 class AddModuleCard extends StatelessWidget {
   const AddModuleCard({super.key});
@@ -14,22 +15,28 @@ class AddModuleCard extends StatelessWidget {
         );
       },
       child: Container(
-        margin: const EdgeInsets.all(16.0),
+        height: 80,
         decoration: BoxDecoration(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color: Colors.grey.withOpacity(0.3),
-            style: BorderStyle.solid,
+            color: AppColors.textDisabled, 
+            style: BorderStyle.solid, // Використовуємо solid замість dashed для сумісності
           ),
         ),
         child: const Center(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add, color: Colors.grey, size: 20),
-              SizedBox(width: 8),
-              Text("Add Module"),
+              Icon(Icons.add, color: AppColors.textDisabled, size: 20),
+              SizedBox(width: AppSpacing.sm),
+              Text(
+                "Add Module", 
+                style: TextStyle(
+                  color: AppColors.textDisabled, 
+                  fontWeight: FontWeight.w500
+                ),
+              ),
             ],
           ),
         ),

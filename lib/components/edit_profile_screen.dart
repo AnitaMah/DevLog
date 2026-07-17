@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:dev_log/models/user_model.dart';
+import 'package:dev_log/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
@@ -12,7 +13,7 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final Box<UserModel> usersBox = Hive.box<UserModel>('users');
+  final Box<UserModel> usersBox = Hive.box<UserModel>('userBox');
   late UserModel _user;
   late TextEditingController _nameController;
   late TextEditingController _emailController;
@@ -21,117 +22,83 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Отримуємо користувача з Hive або створюємо нового
-    _user = usersBox.getAt(0) ?? UserModel(
-      name: "Default User",
-      email: "default@example.com",
-    );
+    _user = usersBox.getAt(0) ?? UserModel(name: "User", email: "user@example.com");
     _nameController = TextEditingController(text: _user.name);
     _emailController = TextEditingController(text: _user.email);
-    _selectedAvatar = _user.avatarPath != 'assets/images/default_avatar.png'
-        ? File(_user.avatarPath)
-        : null;
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    super.dispose();
+    _selectedAvatar = _user.avatarPath != 'assets/images/default_avatar.png' 
+        ? File(_user.avatarPath) : null;
   }
 
   Future<void> _pickAvatar() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedAvatar = File(pickedFile.path);
-      });
-    }
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) setState(() => _selectedAvatar = File(pickedFile.path));
   }
 
   void _saveProfile() {
     _user.name = _nameController.text;
     _user.email = _emailController.text;
-    if (_selectedAvatar != null) {
-      _user.avatarPath = _selectedAvatar!.path;
-    }
+    if (_selectedAvatar != null) _user.avatarPath = _selectedAvatar!.path;
     _user.save();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Profile updated!")),
-    );
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Edit Profile"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveProfile,
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Column(
           children: [
-            // Avatar
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             GestureDetector(
               onTap: _pickAvatar,
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage: _selectedAvatar != null
-                        ? FileImage(_selectedAvatar!)
-                        : AssetImage(_user.avatarPath) as ImageProvider,
-                  ),
-                  const Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.edit, color: Colors.blue),
-                    ),
-                  ),
-                ],
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: AppColors.cardBackground,
+                backgroundImage: _selectedAvatar != null ? FileImage(_selectedAvatar!) : null,
+                child: _selectedAvatar == null ? const Icon(Icons.person, size: 50, color: Colors.white30) : null,
               ),
             ),
-            const SizedBox(height: 20),
-
-            // Name field
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Name",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Email field
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: "Email",
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 24),
-
-            // Save button
+            const SizedBox(height: AppSpacing.xl),
+            _buildTextField(_nameController, "Name"),
+            const SizedBox(height: AppSpacing.md),
+            _buildTextField(_emailController, "Email"),
+            const SizedBox(height: AppSpacing.xxl),
             ElevatedButton(
               onPressed: _saveProfile,
               style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentPurple,
                 minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
               ),
-              child: const Text("Save Changes"),
+              child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        filled: true,
+        fillColor: AppColors.cardBackground,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderSide: BorderSide.none,
         ),
       ),
     );
