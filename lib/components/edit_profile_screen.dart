@@ -22,11 +22,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _user = usersBox.getAt(0) ?? UserModel(name: "User", email: "user@example.com");
+    
+    // БЕЗПЕЧНА ІНІЦІАЛІЗАЦІЯ:
+    // Перевіряємо, чи є вже дані в базі. Якщо немає — створюємо дефолтний об'єкт.
+    if (usersBox.isNotEmpty) {
+      _user = usersBox.getAt(0)!;
+    } else {
+      _user = UserModel(name: "User", email: "user@example.com");
+      // Одразу додаємо до боксу, щоб гарантувати наявність індексу 0
+      usersBox.add(_user);
+    }
+
     _nameController = TextEditingController(text: _user.name);
     _emailController = TextEditingController(text: _user.email);
-    _selectedAvatar = _user.avatarPath != 'assets/images/default_avatar.png' 
-        ? File(_user.avatarPath) : null;
+    
+    // Перевіряємо, чи файл існує за шляхом
+    _selectedAvatar = (_user.avatarPath.isNotEmpty && _user.avatarPath != 'assets/images/default_avatar.png') 
+        ? File(_user.avatarPath) 
+        : null;
   }
 
   Future<void> _pickAvatar() async {
@@ -38,7 +51,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _user.name = _nameController.text;
     _user.email = _emailController.text;
     if (_selectedAvatar != null) _user.avatarPath = _selectedAvatar!.path;
+    
+    // Використовуємо .save(), оскільки UserModel наслідується від HiveObject
     _user.save();
+    
     Navigator.pop(context);
   }
 
