@@ -1,16 +1,9 @@
-# Flutter/Dart
 .dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
 .packages
+build/
 .pub-cache/
 .pub/
-build/
-*.iml
-*.lock
-
-# IDE/Editor (якщо користуєтесь VS Code або Android Studio)
-.vscode/
-.idea/
-
-# Операційна система
-.DS_Store
-Thumbs.db
+*.g.dart
+*.freezed.dart
