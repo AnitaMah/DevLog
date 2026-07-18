@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/theme/app_theme.dart';
+import 'package:dev_log/components/module_input_dialog.dart';
 
 class AddModuleCard extends StatelessWidget {
   const AddModuleCard({super.key});
@@ -17,24 +17,24 @@ class AddModuleCard extends StatelessWidget {
       child: Container(
         height: 80,
         decoration: BoxDecoration(
-          color: Colors.transparent,
+          color: AppColors.accentPurple, // Фіолетовий колір
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color: AppColors.textDisabled, 
-            style: BorderStyle.solid, // Використовуємо solid замість dashed для сумісності
+            color: AppColors.accentPurple,
+            style: BorderStyle.solid,
           ),
         ),
         child: const Center(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add, color: AppColors.textDisabled, size: 20),
+              Icon(Icons.add, color: Colors.white, size: 20),
               SizedBox(width: AppSpacing.sm),
               Text(
-                "Add Module", 
+                "Add Module",
                 style: TextStyle(
-                  color: AppColors.textDisabled, 
-                  fontWeight: FontWeight.w500
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
