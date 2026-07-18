@@ -22,39 +22,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // БЕЗПЕЧНА ІНІЦІАЛІЗАЦІЯ:
-    // Перевіряємо, чи є вже дані в базі. Якщо немає — створюємо дефолтний об'єкт.
+
+    // Безпечна ініціалізація
     if (usersBox.isNotEmpty) {
       _user = usersBox.getAt(0)!;
     } else {
       _user = UserModel(name: "User", email: "user@example.com");
-      // Одразу додаємо до боксу, щоб гарантувати наявність індексу 0
       usersBox.add(_user);
     }
 
     _nameController = TextEditingController(text: _user.name);
     _emailController = TextEditingController(text: _user.email);
-    
-    // Перевіряємо, чи файл існує за шляхом
-    _selectedAvatar = (_user.avatarPath.isNotEmpty && _user.avatarPath != 'assets/images/default_avatar.png') 
-        ? File(_user.avatarPath) 
+
+    // Перевірка, чи файл існує за шляхом
+    _selectedAvatar = (_user.avatarPath.isNotEmpty && _user.avatarPath != 'assets/images/default_avatar.png')
+        ? File(_user.avatarPath)
         : null;
   }
 
   Future<void> _pickAvatar() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) setState(() => _selectedAvatar = File(pickedFile.path));
+    if (pickedFile != null) {
+      setState(() => _selectedAvatar = File(pickedFile.path));
+    }
   }
 
   void _saveProfile() {
     _user.name = _nameController.text;
     _user.email = _emailController.text;
-    if (_selectedAvatar != null) _user.avatarPath = _selectedAvatar!.path;
-    
-    // Використовуємо .save(), оскільки UserModel наслідується від HiveObject
+    if (_selectedAvatar != null) {
+      _user.avatarPath = _selectedAvatar!.path;
+    }
     _user.save();
-    
     Navigator.pop(context);
   }
 
@@ -80,7 +79,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 radius: 50,
                 backgroundColor: AppColors.cardBackground,
                 backgroundImage: _selectedAvatar != null ? FileImage(_selectedAvatar!) : null,
-                child: _selectedAvatar == null ? const Icon(Icons.person, size: 50, color: Colors.white30) : null,
+                child: _selectedAvatar == null
+                    ? const Icon(Icons.person, size: 50, color: Colors.white30)
+                    : null,
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -93,9 +94,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accentPurple,
                 minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
               ),
-              child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
+              child: const Text(
+                "Save Changes",
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -103,7 +109,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
- 0 Widget _buildTextField(TextEditingController controller, String label) {
+  // Виправлений метод (без зайвої цифри "0")
+  Widget _buildTextField(TextEditingController controller, String label) {
     return TextField(
       controller: controller,
       style: const TextStyle(color: Colors.white),
