@@ -1,68 +1,37 @@
 import 'package:hive/hive.dart';
+import 'submodule.dart';
 
 part 'module.g.dart';
 
 @HiveType(typeId: 0)
 class Module extends HiveObject {
   @HiveField(0)
-  String id;
+  final String id;
 
   @HiveField(1)
-  String title;
+  final String name;
 
   @HiveField(2)
-  String description;
+  final List<Submodule> submodules;
 
   @HiveField(3)
-  int notesCount;
+  final List<String> files;
 
   @HiveField(4)
-  String iconName;
-
-  @HiveField(5)
-  String? parentId; // Якщо null — це головний модуль
-
-  @HiveField(6)
-  String? filePath;
-
-  @HiveField(7)
-  double progress;
-
-  @HiveField(8)
-  String lastOpenedAt;
-
-  // Нове поле для зручного зберігання зв'язків
-  @HiveField(9)
-  List<String> subModuleIds;
+  DateTime lastOpenedAt;
 
   Module({
     required this.id,
-    required this.title,
-    this.description = '',
-    this.notesCount = 0,
-    this.iconName = 'code',
-    this.parentId,
-    this.filePath,
-    this.progress = 0.0,
-    String? lastOpenedAt,
-    List<String>? subModuleIds,
-  })  : lastOpenedAt = lastOpenedAt ?? DateTime.now().toIso8601String(),
-        subModuleIds = subModuleIds ?? [];
-
-  // Метод для додавання підмодуля
-  void addSubModule(String id) {
-    if (!subModuleIds.contains(id)) {
-      subModuleIds.add(id);
-      save();
-    }
-  }
-
-  DateTime getLastOpenedAt() {
-    return DateTime.parse(lastOpenedAt);
-  }
+    required this.name,
+    List<Submodule>? submodules,
+    List<String>? files,
+    DateTime? lastOpenedAt,
+  })  : submodules = submodules ?? [],
+        files = files ?? [],
+        lastOpenedAt = lastOpenedAt ?? DateTime.now();
 
   void updateLastOpenedAt() {
-    lastOpenedAt = DateTime.now().toIso8601String();
+    lastOpenedAt = DateTime.now();
     save();
   }
 }
