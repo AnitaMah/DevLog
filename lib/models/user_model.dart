@@ -5,13 +5,13 @@ part 'user_model.g.dart';
 @HiveType(typeId: 1)
 class UserModel extends HiveObject {
   @HiveField(0)
-  String name; // Змінне поле
+  String name;
 
   @HiveField(1)
-  String email; // Змінне поле
+  String email;
 
   @HiveField(2)
-  String avatarPath; // Змінне поле
+  String avatarPath;
 
   UserModel({
     required this.name,
