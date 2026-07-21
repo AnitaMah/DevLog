@@ -1,8 +1,8 @@
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:dev_log/models/module.dart';
-import 'package:dev_log/models/submodule.dart';
-import 'package:dev_log/models/user_model.dart';
+import '../models/module.dart';
+import '../models/submodule.dart';
+import '../models/user_model.dart';
 
 class DatabaseHelper {
   static const String _modulesBox = 'modules';
@@ -25,9 +25,7 @@ class DatabaseHelper {
   }
 
   static Future<void> addModule(Module module) async {
-    if (!_modules.values.any((m) => m.name == module.name)) {
-      await _modules.add(module);
-    }
+    await _modules.add(module);
   }
 
   static Future<void> deleteModule(String moduleId) async {
@@ -38,33 +36,21 @@ class DatabaseHelper {
   // --- Submodules ---
   static Future<void> addSubmodule(String moduleId, Submodule submodule) async {
     final module = _modules.values.firstWhere((m) => m.id == moduleId);
-    if (!module.submodules.any((s) => s.name == submodule.name)) {
-      module.submodules.add(submodule);
-      await module.save();
-    }
-  }
-
-  static Future<void> deleteSubmodule(String moduleId, String submoduleId) async {
-    final module = _modules.values.firstWhere((m) => m.id == moduleId);
-    module.submodules.removeWhere((s) => s.id == submoduleId);
+    module.submodules.add(submodule);
     await module.save();
   }
 
   // --- Files ---
   static Future<void> addFileToModule(String moduleId, String fileName) async {
     final module = _modules.values.firstWhere((m) => m.id == moduleId);
-    if (!module.files.contains(fileName)) {
-      module.files.add(fileName);
-      await module.save();
-    }
+    module.files.add(fileName);
+    await module.save();
   }
 
   static Future<void> addFileToSubmodule(String moduleId, String submoduleId, String fileName) async {
     final module = _modules.values.firstWhere((m) => m.id == moduleId);
     final submodule = module.submodules.firstWhere((s) => s.id == submoduleId);
-    if (!submodule.files.contains(fileName)) {
-      submodule.files.add(fileName);
-      await module.save();
-    }
+    submodule.files.add(fileName);
+    await module.save();
   }
 }
