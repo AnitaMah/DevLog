@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dev_log/models/module.dart';
+import 'package:dev_log/models/submodule.dart';
 import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/screens/submodule_screen.dart';
 
@@ -75,9 +76,19 @@ class ModuleScreen extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSubmoduleDialog(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () => _showAddSubmoduleDialog(context),
+            child: const Icon(Icons.add),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            onPressed: () => _showAddFileDialog(context),
+            child: const Icon(Icons.note_add),
+          ),
+        ],
       ),
     );
   }
