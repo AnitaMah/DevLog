@@ -12,26 +12,20 @@ class Module extends HiveObject {
   final String name;
 
   @HiveField(2)
-  final List<Submodule> submodules;
+  final String? parentId; // Додано для підтримки ієрархії
 
   @HiveField(3)
-  final List<String> files;
+  final List<Submodule> submodules;
 
   @HiveField(4)
-  DateTime lastOpenedAt;
+  final List<String> files;
 
   Module({
     required this.id,
     required this.name,
+    this.parentId,
     List<Submodule>? submodules,
     List<String>? files,
-    DateTime? lastOpenedAt,
   })  : submodules = submodules ?? [],
-        files = files ?? [],
-        lastOpenedAt = lastOpenedAt ?? DateTime.now();
-
-  void updateLastOpenedAt() {
-    lastOpenedAt = DateTime.now();
-    save();
-  }
+        files = files ?? [];
 }
