@@ -9,12 +9,22 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Отримуємо всі модулі з бази даних
-    final modules = DatabaseHelper.getAllModules();
+    // Отримуємо всі модулі, у яких parentId == null (кореневі модулі)
+    final rootModules = DatabaseHelper.getAllModules()
+        .where((module) => module.parentId == null)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("DevLog"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Modules refreshed")),
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -28,14 +38,12 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
-                itemCount: modules.length + 1, // +1 для кнопки додавання
+                itemCount: rootModules.length + 1, // +1 для кнопки додавання
                 itemBuilder: (context, index) {
-                  if (index == modules.length) {
-                    // Кнопка додавання модуля
+                  if (index == rootModules.length) {
                     return const AddModuleCard();
                   }
-                  // Картка модуля
-                  final module = modules[index];
+                  final module = rootModules[index];
                   return Card(
                     child: ListTile(
                       title: Text(module.name),
