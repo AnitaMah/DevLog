@@ -3,13 +3,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/models/submodule.dart';
 import 'package:dev_log/models/user_model.dart';
-import 'package:dev_log/screens/dashboard_screen.dart';
-import 'package:dev_log/theme/app_theme.dart';
+import 'package:dev_log/screens/home_screen.dart'; // <-- Переконайтеся, що цей імпорт є
 import 'package:dev_log/database/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await DatabaseHelper.init();
+  await DatabaseHelper.init(); // Ініціалізація Hive
   runApp(const DevLogApp());
 }
 
@@ -23,14 +22,13 @@ class DevLogApp extends StatelessWidget {
       title: 'DevLog',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.background,
-        fontFamily: 'Roboto',
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.accentPurple,
-          surface: AppColors.background,
+        scaffoldBackgroundColor: Colors.grey[900],
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.black87,
+          titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
         ),
       ),
-      home: const DashboardScreen(),
+      home: const HomeScreen(), // <-- Головний екран
     );
   }
 }
