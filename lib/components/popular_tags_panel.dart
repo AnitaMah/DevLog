@@ -18,7 +18,7 @@ class PopularTagsPanel extends StatelessWidget {
       builder: (context, moduleBox, _) {
         return ValueListenableBuilder<Box<Note>>(
           valueListenable: Hive.box<Note>('notes').listenable(),
-          builder: (context, __, _) {
+          builder: (context, _, _) {
             final modules = moduleBox.values.where((m) => m.parentId == null).toList()
               ..sort((a, b) => DatabaseHelper.getNotesCountForModule(b.id)
                   .compareTo(DatabaseHelper.getNotesCountForModule(a.id)));

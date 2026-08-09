@@ -35,7 +35,7 @@ class ModuleListView extends StatelessWidget {
                         title: Text(module.title, style: AppTextStyles.cardTitle),
                         subtitle: ValueListenableBuilder<Box<Note>>(
                           valueListenable: Hive.box<Note>('notes').listenable(),
-                          builder: (context, __, _) => Text(
+                          builder: (context, _, _) => Text(
                             "${DatabaseHelper.getNotesCountForModule(module.id)} notes",
                             style: AppTextStyles.cardSubtitle,
                           ),
