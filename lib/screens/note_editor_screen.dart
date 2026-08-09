@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/models/note.dart';
 import 'package:dev_log/theme/app_theme.dart';
@@ -26,12 +28,42 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late List<String> _tags;
   bool get _isEditing => widget.note != null;
 
+  // Snapshot of the last-saved (or initial) state, used to detect unsaved
+  // changes when the user tries to leave the screen.
+  late String _initialTitle;
+  late String _initialContent;
+  late List<String> _initialTags;
+
+  // Set right before an intentional pop (after saving or deleting, or when
+  // the user explicitly chooses to discard changes) so the unsaved-changes
+  // guard doesn't block that pop.
+  bool _bypassUnsavedGuard = false;
+
+  bool get _hasUnsavedChanges {
+    if (_bypassUnsavedGuard) return false;
+    return _titleController.text != _initialTitle ||
+        _contentController.text != _initialContent ||
+        !listEquals(_tags, _initialTags);
+  }
+
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.note?.title ?? '');
     _contentController = TextEditingController(text: widget.note?.content ?? '');
     _tags = List<String>.from(widget.note?.tags ?? []);
+    _initialTitle = _titleController.text;
+    _initialContent = _contentController.text;
+    _initialTags = List<String>.from(_tags);
+  }
+
+  /// Pops the screen once the current frame has rebuilt with the updated
+  /// unsaved-changes state, so PopScope's `canPop` is guaranteed to reflect
+  /// the change before the pop is attempted.
+  void _popWhenClean() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.pop(context);
+    });
   }
 
   @override
@@ -68,7 +100,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       await DatabaseHelper.addNote(widget.moduleId!, title: title, content: content, tags: _tags);
     }
 
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    setState(() {
+      _initialTitle = title;
+      _initialContent = content;
+      _initialTags = List<String>.from(_tags);
+    });
+    _popWhenClean();
   }
 
   Future<void> _delete() async {
@@ -94,12 +132,66 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
     if (confirmed == true) {
       await DatabaseHelper.deleteNote(widget.note!.id);
-      if (mounted) Navigator.pop(context);
+      if (!mounted) return;
+      setState(() => _bypassUnsavedGuard = true);
+      _popWhenClean();
     }
+  }
+
+  Future<String?> _showUnsavedChangesDialog() {
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.sidebarBackground,
+        title: Text("Unsaved changes", style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          "You have unsaved changes to this note. Save before leaving?",
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'discard'),
+            child: const Text("Discard", style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'save'),
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    return CallbackShortcuts(
+      bindings: {
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS): _save,
+        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyS): _save,
+      },
+      child: PopScope(
+        canPop: !_hasUnsavedChanges,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final choice = await _showUnsavedChangesDialog();
+          if (!mounted) return;
+          if (choice == 'save') {
+            await _save();
+          } else if (choice == 'discard') {
+            setState(() => _bypassUnsavedGuard = true);
+            _popWhenClean();
+          }
+        },
+        child: _buildScaffold(),
+      ),
+    );
+  }
+
+  Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
