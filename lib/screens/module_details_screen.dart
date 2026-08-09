@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/models/module.dart';
+import 'package:dev_log/models/note.dart';
 import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/components/module_input_dialog.dart';
-import 'package:dev_log/components/module_tile.dart'; 
+import 'package:dev_log/components/module_tile.dart';
+import 'package:dev_log/components/note_tile.dart';
+import 'package:dev_log/database/database_helper.dart';
+import 'package:dev_log/screens/note_editor_screen.dart';
 
 class ModuleDetailsScreen extends StatelessWidget {
   final Module module;
@@ -18,40 +22,85 @@ class ModuleDetailsScreen extends StatelessWidget {
         title: Text(module.title, style: const TextStyle(color: Colors.white)),
         backgroundColor: AppColors.cardBackground,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.accentPurple,
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => ModuleInputDialog(parentId: module.id, isEditing: false),
-        ),
-        label: const Text("Add Submodule"),
-        icon: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: "add_submodule",
+            backgroundColor: AppColors.cardBackground,
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => ModuleInputDialog(parentId: module.id, isEditing: false),
+            ),
+            child: const Icon(Icons.create_new_folder_outlined, color: Colors.white),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          FloatingActionButton.extended(
+            heroTag: "add_note",
+            backgroundColor: AppColors.accentPurple,
+            onPressed: () async {
+              final note = await DatabaseHelper.addNote(module.id);
+              await module.updateLastOpenedAt();
+              if (context.mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+                );
+              }
+            },
+            label: const Text("Add Note"),
+            icon: const Icon(Icons.note_add_outlined),
+          ),
+        ],
       ),
       body: ValueListenableBuilder(
         valueListenable: Hive.box<Module>('modules').listenable(),
-        builder: (context, Box<Module> box, _) {
-          // Фільтруємо модулі, щоб показати тільки ті, у яких parentId збігається з поточним
-          final subModules = box.values.where((m) => m.parentId == module.id).toList();
-          
-          if (subModules.isEmpty) {
-            return const Center(
-              child: Text("No submodules yet. Click below to add one!", 
-              style: TextStyle(color: Colors.white30))
-            );
-          }
+        builder: (context, Box<Module> moduleBox, _) {
+          final subModules = moduleBox.values.where((m) => m.parentId == module.id).toList();
 
-          return GridView.builder(
-            padding: const EdgeInsets.all(32),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 2.5,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: subModules.length,
-            itemBuilder: (context, index) {
-              final sub = subModules[index];
-              return ModuleTile(module: sub); // Використовуємо вашу картку
+          return ValueListenableBuilder(
+            valueListenable: Hive.box<Note>('notes').listenable(),
+            builder: (context, Box<Note> noteBox, _) {
+              final notes = noteBox.values.where((n) => n.moduleId == module.id).toList()
+                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+              if (subModules.isEmpty && notes.isEmpty) {
+                return const Center(
+                  child: Text(
+                    "Nothing here yet. Use the buttons below to add a note or a submodule.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white30),
+                  ),
+                );
+              }
+
+              return ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  if (notes.isNotEmpty) ...[
+                    Text("Notes", style: AppTextStyles.title),
+                    const SizedBox(height: AppSpacing.md),
+                    ...notes.map((note) => NoteTile(note: note)),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
+                  if (subModules.isNotEmpty) ...[
+                    Text("Submodules", style: AppTextStyles.title),
+                    const SizedBox(height: AppSpacing.md),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 2.5,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      itemCount: subModules.length,
+                      itemBuilder: (context, index) => ModuleTile(module: subModules[index]),
+                    ),
+                  ],
+                ],
+              );
             },
           );
         },
