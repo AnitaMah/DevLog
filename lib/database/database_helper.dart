@@ -67,6 +67,9 @@ class DatabaseHelper {
   static List<Note> getNotesForModule(String moduleId) =>
       _notes.values.where((n) => n.moduleId == moduleId).toList();
 
+  static int getNotesCountForModule(String moduleId) =>
+      _notes.values.where((n) => n.moduleId == moduleId).length;
+
   static Future<Note> addNote(String moduleId, {String title = 'Untitled note', String content = ''}) async {
     final note = Note(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

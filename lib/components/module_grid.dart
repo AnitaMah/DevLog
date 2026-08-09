@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/models/module.dart';
+import 'package:dev_log/models/note.dart';
 import 'package:dev_log/components/add_module_card.dart';
 import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
+import 'package:dev_log/database/database_helper.dart';
 
 class ModuleGrid extends StatelessWidget {
   const ModuleGrid({super.key});
@@ -37,7 +39,7 @@ class ModuleGrid extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Stack(
         children: [
@@ -57,7 +59,13 @@ class ModuleGrid extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(module.title, style: AppTextStyles.cardTitle, overflow: TextOverflow.ellipsis),
-                        Text("${module.notesCount} notes", style: AppTextStyles.cardSubtitle),
+                        ValueListenableBuilder<Box<Note>>(
+                          valueListenable: Hive.box<Note>('notes').listenable(),
+                          builder: (context, __, _) => Text(
+                            "${DatabaseHelper.getNotesCountForModule(module.id)} notes",
+                            style: AppTextStyles.cardSubtitle,
+                          ),
+                        ),
                       ],
                     ),
                   ),

@@ -1,31 +1,48 @@
 import 'package:hive/hive.dart';
-import 'submodule.dart';
 
 part 'module.g.dart';
 
+/// A Module represents a top-level guide/topic (e.g. "C Basics") or a
+/// submodule when [parentId] is set. Submodules are just other [Module]
+/// records whose [parentId] points at their parent's [id].
 @HiveType(typeId: 0)
 class Module extends HiveObject {
   @HiveField(0)
   final String id;
 
   @HiveField(1)
-  final String name;
+  String title;
 
   @HiveField(2)
-  final String? parentId; // Додано для підтримки ієрархії
+  final String? parentId;
 
   @HiveField(3)
-  final List<Submodule> submodules;
+  final List<String> files;
 
   @HiveField(4)
-  final List<String> files;
+  DateTime? lastOpenedAt;
+
+  @HiveField(5)
+  String iconName;
+
+  @HiveField(6)
+  String description;
 
   Module({
     required this.id,
-    required this.name,
+    required this.title,
     this.parentId,
-    List<Submodule>? submodules,
     List<String>? files,
-  })  : submodules = submodules ?? [],
-        files = files ?? [];
+    this.lastOpenedAt,
+    this.iconName = 'folder',
+    this.description = '',
+  }) : files = files ?? [];
+
+  DateTime getLastOpenedAt() =>
+      lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+
+  Future<void> updateLastOpenedAt() async {
+    lastOpenedAt = DateTime.now();
+    await save();
+  }
 }
