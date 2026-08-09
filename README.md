@@ -1,17 +1,22 @@
-# dev_log
+# 42 Guides
 
-A new Flutter project.
+A personal knowledge base for organizing programming notes by topic — built with Flutter, running on Windows, macOS, and Linux desktop.
+
+## Features
+
+- Organize notes into modules and submodules (e.g. "C Basics", "Unix", "Git").
+- Search across modules and notes from the sidebar.
+- Light/dark theme, persisted across launches.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+```
+flutter pub get
+flutter run -d windows   # or macos / linux
+```
 
-A few resources to get you started if this is your first Flutter project:
+Run tests with:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+flutter test
+```

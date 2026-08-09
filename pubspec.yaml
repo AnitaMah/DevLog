@@ -1,5 +1,5 @@
 name: dev_log
-description: "A new Flutter project."
+description: "42 Guides — a personal knowledge base for organizing programming notes by topic."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -11,8 +11,6 @@ dependencies:
     sdk: flutter
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  analyzer: ^6.4.1
-  file_picker: ^8.0.0 # або новіша версія
   path_provider: ^2.1.0
   font_awesome_flutter: ^11.0.0
   image_picker: ^1.2.3
