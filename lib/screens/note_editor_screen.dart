@@ -186,7 +186,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             _popWhenClean();
           }
         },
-        child: _buildScaffold(),
+        // CallbackShortcuts only fires when some descendant already holds
+        // keyboard focus. New notes get that for free from the title
+        // field's own autofocus below; editing an existing note doesn't
+        // autofocus anything, so Ctrl/Cmd+S would silently do nothing until
+        // the user clicked into a field - this covers that gap.
+        child: Focus(
+          autofocus: _isEditing,
+          child: _buildScaffold(),
+        ),
       ),
     );
   }

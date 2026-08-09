@@ -39,14 +39,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyF):
             () => _searchFocusNode.requestFocus(),
       },
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: Row(
-            children: [
-              Sidebar(searchFocusNode: _searchFocusNode),
-              const Expanded(child: MainContent()),
-            ],
+      // CallbackShortcuts only fires when some descendant already holds
+      // keyboard focus - without this, the bindings above are silently
+      // inert until the user happens to click something focusable first.
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: Row(
+              children: [
+                Sidebar(searchFocusNode: _searchFocusNode),
+                const Expanded(child: MainContent()),
+              ],
+            ),
           ),
         ),
       ),
