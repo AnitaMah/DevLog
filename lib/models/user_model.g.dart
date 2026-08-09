@@ -20,19 +20,22 @@ class UserModelAdapter extends TypeAdapter<UserModel> {
       name: fields[0] as String,
       email: fields[1] as String,
       avatarPath: fields[2] as String,
+      isDarkMode: fields[3] == null ? true : fields[3] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserModel obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
       ..write(obj.email)
       ..writeByte(2)
-      ..write(obj.avatarPath);
+      ..write(obj.avatarPath)
+      ..writeByte(3)
+      ..write(obj.isDarkMode);
   }
 
   @override

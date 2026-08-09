@@ -30,9 +30,21 @@ class RecentModulesSection extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Text(
-                "Continue where you left off",
-                style: AppTextStyles.title,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Continue where you left off",
+                    style: AppTextStyles.title,
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    child: Text(
+                      "View all",
+                      style: TextStyle(color: AppColors.accentPurpleLight, fontSize: 13),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.md),

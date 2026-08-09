@@ -2,6 +2,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/module.dart';
 import '../models/user_model.dart';
 import '../models/note.dart';
+import '../theme/app_theme.dart';
 
 class DatabaseHelper {
   static const String _modulesBox = 'modules';
@@ -16,6 +17,24 @@ class DatabaseHelper {
     await Hive.openBox<Module>(_modulesBox);
     await Hive.openBox<UserModel>(_userBox);
     await Hive.openBox<Note>(_notesBox);
+
+    // Restore the saved light/dark preference, if any.
+    if (_users.isNotEmpty) {
+      AppColors.setDark(_users.getAt(0)!.isDarkMode);
+    }
+  }
+
+  // --- User / preferences ---
+  static Box<UserModel> get _users => Hive.box<UserModel>(_userBox);
+
+  static Future<void> saveThemePreference(bool isDark) async {
+    if (_users.isEmpty) {
+      await _users.add(UserModel(name: "User", email: "", isDarkMode: isDark));
+    } else {
+      final user = _users.getAt(0)!;
+      user.isDarkMode = isDark;
+      await user.save();
+    }
   }
 
   // --- Modules ---

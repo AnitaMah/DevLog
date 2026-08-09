@@ -19,7 +19,7 @@ class ModuleDetailsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(module.title, style: const TextStyle(color: Colors.white)),
+        title: Text(module.title, style: TextStyle(color: AppColors.textPrimary)),
         backgroundColor: AppColors.cardBackground,
       ),
       floatingActionButton: Column(
@@ -32,7 +32,7 @@ class ModuleDetailsScreen extends StatelessWidget {
               context: context,
               builder: (_) => ModuleInputDialog(parentId: module.id, isEditing: false),
             ),
-            child: const Icon(Icons.create_new_folder_outlined, color: Colors.white),
+            child: Icon(Icons.create_new_folder_outlined, color: AppColors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.md),
           FloatingActionButton.extended(
@@ -65,11 +65,11 @@ class ModuleDetailsScreen extends StatelessWidget {
                 ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
               if (subModules.isEmpty && notes.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
                     "Nothing here yet. Use the buttons below to add a note or a submodule.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white30),
+                    style: TextStyle(color: AppColors.textDisabled),
                   ),
                 );
               }

@@ -38,7 +38,7 @@ class _SidebarState extends State<Sidebar> {
                     ),
             ),
           ),
-          const Divider(color: Colors.white10), // Розділювач перед футером
+          Divider(color: AppColors.divider), // Розділювач перед футером
           const SidebarFooter(),
         ],
       ),

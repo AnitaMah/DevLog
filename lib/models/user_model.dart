@@ -13,9 +13,13 @@ class UserModel extends HiveObject {
   @HiveField(2)
   String avatarPath;
 
+  @HiveField(3)
+  bool isDarkMode;
+
   UserModel({
     required this.name,
     required this.email,
     this.avatarPath = 'assets/images/default_avatar.png',
+    this.isDarkMode = true,
   });
 }

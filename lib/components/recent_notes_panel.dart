@@ -37,7 +37,7 @@ class RecentNotesPanel extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.cardBackground,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(color: AppColors.cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,7 +45,7 @@ class RecentNotesPanel extends StatelessWidget {
                   Text("Recent Notes", style: AppTextStyles.title),
                   const SizedBox(height: AppSpacing.md),
                   if (topNotes.isEmpty)
-                    const Text("No notes yet.", style: AppTextStyles.smallText)
+                    Text("No notes yet.", style: AppTextStyles.smallText)
                   else
                     ...topNotes.map((note) {
                       final module = modulesById[note.moduleId];
@@ -60,7 +60,7 @@ class RecentNotesPanel extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                           child: Row(
                             children: [
-                              const Icon(Icons.description_outlined,
+                              Icon(Icons.description_outlined,
                                   size: 16, color: AppColors.textSecondary),
                               const SizedBox(width: AppSpacing.sm),
                               Expanded(

@@ -28,7 +28,7 @@ class PopularTagsPanel extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.cardBackground,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                border: Border.all(color: AppColors.cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +36,7 @@ class PopularTagsPanel extends StatelessWidget {
                   Text("Popular Tags", style: AppTextStyles.title),
                   const SizedBox(height: AppSpacing.md),
                   if (modules.isEmpty)
-                    const Text("No modules yet.", style: AppTextStyles.smallText)
+                    Text("No modules yet.", style: AppTextStyles.smallText)
                   else
                     Wrap(
                       spacing: 8,

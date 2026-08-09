@@ -7,11 +7,6 @@ import 'package:dev_log/screens/note_editor_screen.dart';
 
 /// Header row for the dashboard: greeting + quote on the left, quick actions
 /// (theme toggle, "+ New Note") on the right.
-///
-/// The theme toggle doesn't do anything yet — real dark/light switching is
-/// still a TODO (it needs every widget that reaches into [AppColors]
-/// directly to instead read from a themeable source, which is a bigger
-/// refactor than this button alone).
 class MainTopBar extends StatelessWidget {
   const MainTopBar({super.key});
 
@@ -23,9 +18,9 @@ class MainTopBar extends StatelessWidget {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text("Welcome back, Anita 👋", style: AppTextStyles.header),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 "“Knowledge is organized experience.” — 42",
                 style: AppTextStyles.body,
@@ -33,7 +28,13 @@ class MainTopBar extends StatelessWidget {
             ],
           ),
         ),
-        _TopIconButton(icon: Icons.dark_mode_outlined, onPressed: () {}),
+        _TopIconButton(
+          icon: AppColors.isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+          onPressed: () {
+            AppColors.toggle();
+            DatabaseHelper.saveThemePreference(AppColors.isDark);
+          },
+        ),
         const SizedBox(width: AppSpacing.md),
         ElevatedButton.icon(
           onPressed: () => _createNote(context),

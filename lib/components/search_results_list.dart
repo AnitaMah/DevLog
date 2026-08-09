@@ -33,8 +33,8 @@ class SearchResultsList extends StatelessWidget {
                 .toList();
 
             if (matchingModules.isEmpty && matchingNotes.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(24),
+              return Padding(
+                padding: const EdgeInsets.all(24),
                 child: Text(
                   "No matches.",
                   style: AppTextStyles.smallText,
@@ -67,7 +67,7 @@ class SearchResultsList extends StatelessWidget {
                     _SectionLabel("Notes"),
                     ...matchingNotes.map((note) => ListTile(
                           dense: true,
-                          leading: const Icon(Icons.description_outlined,
+                          leading: Icon(Icons.description_outlined,
                               size: 16, color: AppColors.textSecondary),
                           title: Text(note.title, style: AppTextStyles.cardTitle),
                           onTap: () => Navigator.push(
@@ -95,7 +95,7 @@ class _SectionLabel extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
       child: Text(text.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
               color: AppColors.textDisabled, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }

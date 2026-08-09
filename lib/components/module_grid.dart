@@ -39,7 +39,7 @@ class ModuleGrid extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.cardBorder),
       ),
       child: Stack(
         children: [
@@ -77,7 +77,7 @@ class ModuleGrid extends StatelessWidget {
             top: 4,
             right: 4,
             child: IconButton(
-              icon: const Icon(Icons.close, size: 14, color: Colors.white30),
+              icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
               onPressed: () => _showDeleteConfirmationDialog(context, module, box),
             ),
           ),

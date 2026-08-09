@@ -58,9 +58,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.sidebarBackground,
-        title: const Text("Delete Note", style: TextStyle(color: Colors.white)),
-        content: const Text("Are you sure you want to delete this note?",
-            style: TextStyle(color: Colors.white70)),
+        title: Text("Delete Note", style: TextStyle(color: AppColors.textPrimary)),
+        content: Text("Are you sure you want to delete this note?",
+            style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -108,14 +108,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               controller: _titleController,
               autofocus: !_isEditing,
               style: AppTextStyles.header,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: "Note title",
                 hintStyle: TextStyle(color: AppColors.textDisabled),
                 border: InputBorder.none,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            const Divider(color: AppColors.divider),
+            Divider(color: AppColors.divider),
             const SizedBox(height: AppSpacing.md),
             Expanded(
               child: TextField(
@@ -124,7 +124,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: "Write your note here…",
                   hintStyle: TextStyle(color: AppColors.textDisabled),
                   border: InputBorder.none,

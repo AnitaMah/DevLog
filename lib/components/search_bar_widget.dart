@@ -37,18 +37,18 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
             widget.onChanged?.call(value);
             setState(() {});
           },
-          style: const TextStyle(fontSize: 14, color: Colors.white),
+          style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: "Search modules and notes",
-            hintStyle: const TextStyle(color: Colors.white30, fontSize: 14),
+            hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 14),
             filled: true,
             fillColor: AppColors.cardBackground, // Темний фон[cite: 7, 10]
             contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-            prefixIcon: const Icon(Icons.search, size: 16, color: Colors.white30),
+            prefixIcon: Icon(Icons.search, size: 16, color: AppColors.textDisabled),
             suffixIcon: _controller.text.isEmpty
                 ? null
                 : IconButton(
-                    icon: const Icon(Icons.close, size: 14, color: Colors.white30),
+                    icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
                     onPressed: _clear,
                   ),
             border: OutlineInputBorder(

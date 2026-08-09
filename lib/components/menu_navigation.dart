@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
 import 'package:dev_log/theme/app_theme.dart';
+import 'package:dev_log/screens/module_details_screen.dart';
 
 class MenuNavigation extends StatelessWidget {
   const MenuNavigation({super.key});
@@ -50,7 +51,13 @@ class MenuNavigation extends StatelessWidget {
                       style: AppTextStyles.body,
                     ),
                     onTap: () {
-                      // Логіка переходу
+                      sub.updateLastOpenedAt();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ModuleDetailsScreen(module: sub),
+                        ),
+                      );
                     },
                   );
                 }).toList(),

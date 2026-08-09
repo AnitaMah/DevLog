@@ -36,7 +36,7 @@ class RecentModuleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground, // Темний фон картки[cite: 7, 16]
           borderRadius: BorderRadius.circular(8), // Строгіші кути
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: AppColors.cardBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,7 +71,7 @@ class RecentModuleCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(timeAgo, style: AppTextStyles.smallText),
-                const Icon(Icons.bookmark_border, color: Colors.white24, size: 14),
+                Icon(Icons.bookmark_border, color: AppColors.textDisabled, size: 14),
               ],
             ),
           ],

@@ -32,7 +32,7 @@ class HeaderLogoSection extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           // Текстова частина
-          const Text(
+          Text(
             "Guides",
             style: TextStyle(
               color: AppColors.textPrimary,

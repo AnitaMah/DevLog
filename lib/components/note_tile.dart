@@ -21,7 +21,7 @@ class NoteTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.cardBorder),
       ),
       child: ListTile(
         leading: const Icon(Icons.description_outlined, color: AppColors.accentPurple, size: 20),
@@ -32,7 +32,7 @@ class NoteTile extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white30, size: 18),
+        trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled, size: 18),
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:dev_log/models/module.dart';
-import 'package:dev_log/models/submodule.dart';
-import 'package:dev_log/models/user_model.dart';
-import 'package:dev_log/screens/home_screen.dart';
+import 'package:dev_log/screens/dashboard_screen.dart';
 import 'package:dev_log/database/database_helper.dart';
+import 'package:dev_log/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,18 +14,25 @@ class DevLogApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'DevLog',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.grey[900],
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black87,
-          titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
-        ),
-      ),
-      home: const HomeScreen(), // Головний екран
+    // Rebuilds the whole tree whenever AppColors.toggle()/setDark() is
+    // called, so every widget re-reads the (non-const) AppColors getters.
+    return ValueListenableBuilder<bool>(
+      valueListenable: AppColors.modeNotifier,
+      builder: (context, isDark, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: '42 Guides',
+          theme: ThemeData(
+            brightness: isDark ? Brightness.dark : Brightness.light,
+            scaffoldBackgroundColor: AppColors.background,
+            appBarTheme: AppBarTheme(
+              backgroundColor: AppColors.sidebarBackground,
+              titleTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 20),
+            ),
+          ),
+          home: const DashboardScreen(),
+        );
+      },
     );
   }
 }

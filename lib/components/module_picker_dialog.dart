@@ -14,7 +14,7 @@ class ModulePickerDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.sidebarBackground,
-      title: const Text("Add note to…", style: TextStyle(color: Colors.white)),
+      title: Text("Add note to…", style: TextStyle(color: AppColors.textPrimary)),
       content: SizedBox(
         width: 320,
         child: ListView.builder(

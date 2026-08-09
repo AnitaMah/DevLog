@@ -68,7 +68,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -80,7 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 backgroundColor: AppColors.cardBackground,
                 backgroundImage: _selectedAvatar != null ? FileImage(_selectedAvatar!) : null,
                 child: _selectedAvatar == null
-                    ? const Icon(Icons.person, size: 50, color: Colors.white30)
+                    ? Icon(Icons.person, size: 50, color: AppColors.textDisabled)
                     : null,
               ),
             ),
@@ -113,10 +113,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildTextField(TextEditingController controller, String label) {
     return TextField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        labelStyle: TextStyle(color: AppColors.textSecondary),
         filled: true,
         fillColor: AppColors.cardBackground,
         border: OutlineInputBorder(

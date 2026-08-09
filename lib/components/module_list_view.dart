@@ -27,7 +27,7 @@ class ModuleListView extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.cardBackground,
                         borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                        border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: ListTile(
                         leading: IconHelper.getFaIcon(module.iconName,
@@ -45,7 +45,7 @@ class ModuleListView extends StatelessWidget {
                           builder: (c) => ModuleInputDialog(module: module, isEditing: true),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.close, size: 14, color: Colors.white30),
+                          icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
                           onPressed: () => DatabaseHelper.deleteModule(module.id),
                         ),
                       ),

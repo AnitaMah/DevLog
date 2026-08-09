@@ -35,8 +35,8 @@ class SidebarFooter extends StatelessWidget {
                   backgroundColor: AppColors.cardBackground,
                   // Перевіряємо, чи файл фізично існує перед відображенням
                   backgroundImage: fileExists ? FileImage(file) : null,
-                  child: !fileExists 
-                      ? const Icon(Icons.person, color: Colors.white) 
+                  child: !fileExists
+                      ? Icon(Icons.person, color: AppColors.textPrimary)
                       : null,
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -47,7 +47,7 @@ class SidebarFooter extends StatelessWidget {
                     overflow: TextOverflow.ellipsis
                   ),
                 ),
-                const Icon(Icons.settings, size: 16, color: AppColors.textSecondary),
+                Icon(Icons.settings, size: 16, color: AppColors.textSecondary),
               ],
             ),
           ),
