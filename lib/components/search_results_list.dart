@@ -8,8 +8,8 @@ import 'package:dev_log/screens/module_details_screen.dart';
 import 'package:dev_log/screens/note_editor_screen.dart';
 
 /// Shown in the sidebar in place of the module tree while there's an
-/// active search query. Matches modules by title and notes by title or
-/// content, and lets you jump straight to either.
+/// active search query. Matches modules by title and notes by title,
+/// content, or tag, and lets you jump straight to either.
 class SearchResultsList extends StatelessWidget {
   final String query;
 
@@ -29,7 +29,9 @@ class SearchResultsList extends StatelessWidget {
                 moduleBox.values.where((m) => m.title.toLowerCase().contains(q)).toList();
             final matchingNotes = noteBox.values
                 .where((n) =>
-                    n.title.toLowerCase().contains(q) || n.content.toLowerCase().contains(q))
+                    n.title.toLowerCase().contains(q) ||
+                    n.content.toLowerCase().contains(q) ||
+                    n.tags.any((tag) => tag.toLowerCase().contains(q)))
                 .toList();
 
             if (matchingModules.isEmpty && matchingNotes.isEmpty) {
