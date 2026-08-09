@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/module.dart';
 import '../models/user_model.dart';
@@ -125,6 +127,89 @@ class DatabaseHelper {
 
   static List<Note> getNotesByTag(String tag) =>
       _notes.values.where((n) => n.tags.contains(tag)).toList();
+
+  // --- Export / Import ---
+
+  /// A JSON-serializable snapshot of every module and note.
+  static Map<String, dynamic> exportData() {
+    return {
+      'version': 1,
+      'exportedAt': DateTime.now().toIso8601String(),
+      'modules': _modules.values
+          .map((m) => {
+                'id': m.id,
+                'title': m.title,
+                'parentId': m.parentId,
+                'lastOpenedAt': m.lastOpenedAt?.toIso8601String(),
+                'iconName': m.iconName,
+                'description': m.description,
+              })
+          .toList(),
+      'notes': _notes.values
+          .map((n) => {
+                'id': n.id,
+                'moduleId': n.moduleId,
+                'title': n.title,
+                'content': n.content,
+                'createdAt': n.createdAt.toIso8601String(),
+                'updatedAt': n.updatedAt.toIso8601String(),
+                'tags': n.tags,
+              })
+          .toList(),
+    };
+  }
+
+  static String exportDataAsJson() =>
+      const JsonEncoder.withIndent('  ').convert(exportData());
+
+  /// Replaces every module and note with the contents of a previously
+  /// exported JSON string. Throws a [FormatException] if [jsonStr] doesn't
+  /// look like a 42 Guides export.
+  static Future<void> importDataFromJson(String jsonStr) async {
+    final decoded = jsonDecode(jsonStr);
+    if (decoded is! Map<String, dynamic> ||
+        decoded['modules'] is! List ||
+        decoded['notes'] is! List) {
+      throw const FormatException('Not a valid 42 Guides export file.');
+    }
+
+    final modulesJson = decoded['modules'] as List;
+    final notesJson = decoded['notes'] as List;
+
+    await _modules.clear();
+    await _notes.clear();
+
+    for (final entry in modulesJson) {
+      final map = entry as Map<String, dynamic>;
+      await _modules.add(Module(
+        id: map['id'] as String,
+        title: map['title'] as String,
+        parentId: map['parentId'] as String?,
+        lastOpenedAt: map['lastOpenedAt'] != null
+            ? DateTime.parse(map['lastOpenedAt'] as String)
+            : null,
+        iconName: map['iconName'] as String? ?? 'folder',
+        description: map['description'] as String? ?? '',
+      ));
+    }
+
+    for (final entry in notesJson) {
+      final map = entry as Map<String, dynamic>;
+      await _notes.add(Note(
+        id: map['id'] as String,
+        moduleId: map['moduleId'] as String,
+        title: map['title'] as String,
+        content: map['content'] as String? ?? '',
+        createdAt: map['createdAt'] != null
+            ? DateTime.parse(map['createdAt'] as String)
+            : null,
+        updatedAt: map['updatedAt'] != null
+            ? DateTime.parse(map['updatedAt'] as String)
+            : null,
+        tags: (map['tags'] as List?)?.map((t) => t.toString()).toList(),
+      ));
+    }
+  }
 
   // --- Danger zone ---
 

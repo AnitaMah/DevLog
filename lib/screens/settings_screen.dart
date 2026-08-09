@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/theme/app_theme.dart';
@@ -11,6 +14,74 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _exportData() async {
+    final json = DatabaseHelper.exportDataAsJson();
+    final defaultName =
+        '42guides-export-${DateTime.now().toIso8601String().split('T').first}.json';
+
+    try {
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Export 42 Guides data',
+        fileName: defaultName,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (path == null) return; // user cancelled
+
+      await File(path).writeAsString(json);
+      _showMessage('Exported to $path');
+    } catch (e) {
+      _showMessage('Export failed: $e');
+    }
+  }
+
+  Future<void> _importData() async {
+    final result = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Import 42 Guides data',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    final path = result?.files.single.path;
+    if (path == null) return; // user cancelled
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.sidebarBackground,
+        title: Text("Import data?", style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          "This replaces every module and note currently in the app with "
+          "the contents of the selected file. This can't be undone.",
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Replace data", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final contents = await File(path).readAsString();
+      await DatabaseHelper.importDataFromJson(contents);
+      _showMessage('Import complete.');
+    } catch (e) {
+      _showMessage('Import failed: not a valid 42 Guides export file.');
+    }
+  }
+
   Future<void> _confirmClearAllData() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -84,6 +155,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: AppSpacing.xl),
           _SectionHeader("Data"),
+          _SettingsTile(
+            icon: Icons.upload_outlined,
+            title: "Export data",
+            trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled),
+            onTap: _exportData,
+          ),
+          _SettingsTile(
+            icon: Icons.download_outlined,
+            title: "Import data",
+            trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled),
+            onTap: _importData,
+          ),
           _SettingsTile(
             icon: Icons.delete_outline,
             title: "Clear all data",

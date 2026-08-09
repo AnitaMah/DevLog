@@ -187,6 +187,58 @@ void main() {
     });
   });
 
+  group('Export / Import', () {
+    test('exportData captures every module and note field', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git', description: 'vcs'));
+      await DatabaseHelper.addNote('m1', title: 'Rebase', content: 'body', tags: ['git']);
+
+      final data = DatabaseHelper.exportData();
+
+      expect(data['modules'], hasLength(1));
+      expect(data['notes'], hasLength(1));
+      expect((data['modules'] as List).first['title'], 'Git');
+      expect((data['notes'] as List).first['tags'], ['git']);
+    });
+
+    test('importDataFromJson round-trips through exportDataAsJson', () async {
+      await DatabaseHelper.addModule(Module(id: 'root', title: 'C', description: 'lang'));
+      await DatabaseHelper.addModule(Module(id: 'child', title: 'Pointers', parentId: 'root'));
+      await DatabaseHelper.addNote('root', title: 'Intro', content: 'hi', tags: ['c', 'basics']);
+
+      final json = DatabaseHelper.exportDataAsJson();
+
+      await DatabaseHelper.clearAllData();
+      expect(DatabaseHelper.getAllModules(), isEmpty);
+
+      await DatabaseHelper.importDataFromJson(json);
+
+      final modules = DatabaseHelper.getAllModules();
+      final notes = DatabaseHelper.getAllNotes();
+      expect(modules, hasLength(2));
+      expect(notes, hasLength(1));
+      expect(modules.firstWhere((m) => m.id == 'child').parentId, 'root');
+      expect(notes.first.tags, ['c', 'basics']);
+    });
+
+    test('importDataFromJson replaces existing data rather than merging', () async {
+      await DatabaseHelper.addModule(Module(id: 'old', title: 'Old module'));
+      final json = DatabaseHelper.exportDataAsJson(); // captures only 'old'
+
+      await DatabaseHelper.addModule(Module(id: 'new', title: 'New module'));
+      await DatabaseHelper.importDataFromJson(json);
+
+      final modules = DatabaseHelper.getAllModules();
+      expect(modules.map((m) => m.id), ['old']);
+    });
+
+    test('importDataFromJson rejects malformed input', () async {
+      expect(
+        () => DatabaseHelper.importDataFromJson('{"foo": "bar"}'),
+        throwsFormatException,
+      );
+    });
+  });
+
   group('clearAllData', () {
     test('removes every module and note', () async {
       await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git'));
