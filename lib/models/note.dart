@@ -23,6 +23,9 @@ class Note extends HiveObject {
   @HiveField(5)
   DateTime updatedAt;
 
+  @HiveField(6)
+  final List<String> tags;
+
   Note({
     required this.id,
     required this.moduleId,
@@ -30,12 +33,19 @@ class Note extends HiveObject {
     this.content = '',
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<String>? tags,
   })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+        updatedAt = updatedAt ?? DateTime.now(),
+        tags = tags ?? [];
 
-  Future<void> update({String? title, String? content}) async {
+  Future<void> update({String? title, String? content, List<String>? tags}) async {
     if (title != null) this.title = title;
     if (content != null) this.content = content;
+    if (tags != null) {
+      this.tags
+        ..clear()
+        ..addAll(tags);
+    }
     updatedAt = DateTime.now();
     await save();
   }
