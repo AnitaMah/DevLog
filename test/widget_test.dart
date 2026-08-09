@@ -1,30 +1,45 @@
-// This is a basic Flutter widget test.
+// Basic smoke test for the DevLog / 42 Guides dashboard.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Sets up an isolated, temporary Hive database (so the test doesn't touch
+// real user data and doesn't need the path_provider plugin) and verifies
+// the app boots straight into the dashboard.
 
-import 'package:flutter/material.dart';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:dev_log/main.dart';
+import 'package:dev_log/models/module.dart';
+import 'package:dev_log/models/note.dart';
+import 'package:dev_log/models/user_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  late Directory tempDir;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp('dev_log_test');
+    Hive.init(tempDir.path);
+    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(ModuleAdapter());
+    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(UserModelAdapter());
+    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(NoteAdapter());
+    await Hive.openBox<Module>('modules');
+    await Hive.openBox<UserModel>('userBox');
+    await Hive.openBox<Note>('notes');
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  tearDown(() async {
+    await Hive.deleteFromDisk();
+    if (await tempDir.exists()) {
+      await tempDir.delete(recursive: true);
+    }
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('DevLogApp boots into the dashboard', (WidgetTester tester) async {
+    await tester.pumpWidget(const DevLogApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Guides'), findsOneWidget);
+    expect(find.textContaining('Welcome back'), findsOneWidget);
   });
 }
