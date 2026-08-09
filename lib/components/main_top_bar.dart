@@ -5,6 +5,36 @@ import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/screens/note_editor_screen.dart';
 
+/// Prompts for a module (if needed), creates a new note in it, and opens
+/// the note editor. Shared by the "+ New Note" button and the Ctrl+N /
+/// Cmd+N keyboard shortcut.
+Future<void> createNoteFlow(BuildContext context) async {
+  final modules = DatabaseHelper.getAllModules();
+
+  if (modules.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Create a module first, then add notes to it.")),
+    );
+    return;
+  }
+
+  final selected = await showDialog<Module>(
+    context: context,
+    builder: (_) => ModulePickerDialog(modules: modules),
+  );
+  if (selected == null) return;
+
+  final note = await DatabaseHelper.addNote(selected.id);
+  await selected.updateLastOpenedAt();
+
+  if (context.mounted) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+    );
+  }
+}
+
 /// Header row for the dashboard: greeting + quote on the left, quick actions
 /// (theme toggle, "+ New Note") on the right.
 class MainTopBar extends StatelessWidget {
@@ -37,7 +67,7 @@ class MainTopBar extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.md),
         ElevatedButton.icon(
-          onPressed: () => _createNote(context),
+          onPressed: () => createNoteFlow(context),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accentPurple,
             foregroundColor: Colors.white,
@@ -53,32 +83,6 @@ class MainTopBar extends StatelessWidget {
     );
   }
 
-  Future<void> _createNote(BuildContext context) async {
-    final modules = DatabaseHelper.getAllModules();
-
-    if (modules.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Create a module first, then add notes to it.")),
-      );
-      return;
-    }
-
-    final selected = await showDialog<Module>(
-      context: context,
-      builder: (_) => ModulePickerDialog(modules: modules),
-    );
-    if (selected == null) return;
-
-    final note = await DatabaseHelper.addNote(selected.id);
-    await selected.updateLastOpenedAt();
-
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
-      );
-    }
-  }
 }
 
 class _TopIconButton extends StatelessWidget {

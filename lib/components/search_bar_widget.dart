@@ -3,8 +3,9 @@ import '../theme/app_theme.dart';
 
 class SearchBarWidget extends StatefulWidget {
   final ValueChanged<String>? onChanged;
+  final FocusNode? focusNode;
 
-  const SearchBarWidget({super.key, this.onChanged});
+  const SearchBarWidget({super.key, this.onChanged, this.focusNode});
 
   @override
   State<SearchBarWidget> createState() => _SearchBarWidgetState();
@@ -33,6 +34,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
         height: 36, // Зменшено висоту для компактності
         child: TextField(
           controller: _controller,
+          focusNode: widget.focusNode,
           onChanged: (value) {
             widget.onChanged?.call(value);
             setState(() {});

@@ -7,7 +7,9 @@ import '../components/sidebar_footer.dart';
 import '../theme/app_theme.dart';
 
 class Sidebar extends StatefulWidget {
-  const Sidebar({super.key});
+  final FocusNode? searchFocusNode;
+
+  const Sidebar({super.key, this.searchFocusNode});
 
   @override
   State<Sidebar> createState() => _SidebarState();
@@ -26,7 +28,10 @@ class _SidebarState extends State<Sidebar> {
       child: Column(
         children: [
           const HeaderLogoSection(),
-          SearchBarWidget(onChanged: (value) => setState(() => _query = value)),
+          SearchBarWidget(
+            focusNode: widget.searchFocusNode,
+            onChanged: (value) => setState(() => _query = value),
+          ),
           Expanded( // Використовуємо Expanded, щоб меню займало весь простір
             child: SingleChildScrollView(
               child: isSearching
