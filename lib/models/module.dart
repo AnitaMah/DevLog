@@ -16,9 +16,6 @@ class Module extends HiveObject {
   @HiveField(2)
   final String? parentId;
 
-  @HiveField(3)
-  final List<String> files;
-
   @HiveField(4)
   DateTime? lastOpenedAt;
 
@@ -32,11 +29,10 @@ class Module extends HiveObject {
     required this.id,
     required this.title,
     this.parentId,
-    List<String>? files,
     this.lastOpenedAt,
     this.iconName = 'folder',
     this.description = '',
-  }) : files = files ?? [];
+  });
 
   DateTime getLastOpenedAt() =>
       lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);

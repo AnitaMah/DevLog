@@ -52,13 +52,6 @@ class DatabaseHelper {
     await module.delete();
   }
 
-  // --- Files ---
-  static Future<void> addFileToModule(String moduleId, String fileName) async {
-    final module = _modules.values.firstWhere((m) => m.id == moduleId);
-    module.files.add(fileName);
-    await module.save();
-  }
-
   // --- Notes ---
   static Box<Note> get _notes => Hive.box<Note>(_notesBox);
 

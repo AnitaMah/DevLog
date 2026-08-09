@@ -18,27 +18,30 @@ class ModuleAdapter extends TypeAdapter<Module> {
     };
     return Module(
       id: fields[0] as String,
-      name: fields[1] as String,
-      submodules: (fields[2] as List?)?.cast<Submodule>(),
-      files: (fields[3] as List?)?.cast<String>(),
+      title: fields[1] as String,
+      parentId: fields[2] as String?,
       lastOpenedAt: fields[4] as DateTime?,
+      iconName: fields[5] as String,
+      description: fields[6] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Module obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.name)
+      ..write(obj.title)
       ..writeByte(2)
-      ..write(obj.submodules)
-      ..writeByte(3)
-      ..write(obj.files)
+      ..write(obj.parentId)
       ..writeByte(4)
-      ..write(obj.lastOpenedAt);
+      ..write(obj.lastOpenedAt)
+      ..writeByte(5)
+      ..write(obj.iconName)
+      ..writeByte(6)
+      ..write(obj.description);
   }
 
   @override
