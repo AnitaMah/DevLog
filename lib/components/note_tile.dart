@@ -18,24 +18,29 @@ class NoteTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      decoration: BoxDecoration(
+      // Material (not a decorated Container) so the ListTile's ink splash
+      // has a Material ancestor to paint on without an opaque box in the way.
+      child: Material(
         color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: ListTile(
-        leading: const Icon(Icons.description_outlined, color: AppColors.accentPurple, size: 20),
-        title: Text(note.title, style: AppTextStyles.cardTitle),
-        subtitle: Text(
-          _preview(note.content),
-          style: AppTextStyles.cardSubtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(color: AppColors.cardBorder),
         ),
-        trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled, size: 18),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+        child: ListTile(
+          leading: const Icon(Icons.description_outlined, color: AppColors.accentPurple, size: 20),
+          title: Text(note.title, style: AppTextStyles.cardTitle),
+          subtitle: Text(
+            _preview(note.content),
+            style: AppTextStyles.cardSubtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled, size: 18),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+          ),
         ),
       ),
     );

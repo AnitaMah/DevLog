@@ -23,11 +23,15 @@ class ModuleListView extends StatelessWidget {
           children: modules
               .map((module) => Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
+                    // Material (not a decorated Container) so the ListTile's
+                    // ink splash has a Material ancestor to paint on without
+                    // an opaque box in the way.
+                    child: Material(
+                      color: AppColors.cardBackground,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.md),
-                        border: Border.all(color: AppColors.cardBorder),
+                        side: BorderSide(color: AppColors.cardBorder),
                       ),
                       child: ListTile(
                         leading: IconHelper.getFaIcon(module.iconName,

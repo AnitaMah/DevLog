@@ -216,16 +216,21 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      decoration: BoxDecoration(
+      // Material (not a decorated Container) so the ListTile's ink splash
+      // has a Material ancestor to paint on without an opaque box in the way.
+      child: Material(
         color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: titleColor ?? AppColors.textSecondary),
-        title: Text(title, style: TextStyle(color: titleColor ?? AppColors.textPrimary)),
-        trailing: trailing,
-        onTap: onTap,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(color: AppColors.cardBorder),
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: titleColor ?? AppColors.textSecondary),
+          title: Text(title, style: TextStyle(color: titleColor ?? AppColors.textPrimary)),
+          trailing: trailing,
+          onTap: onTap,
+        ),
       ),
     );
   }
