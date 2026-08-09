@@ -21,6 +21,24 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.4.13
   hive_generator: ^2.0.1
+  msix:
 
 flutter:
   uses-material-design: true
+
+# Windows packaging (MSIX installer). Build with:
+#   flutter pub get
+#   flutter pub run msix:create
+# logo_path currently points at the default Flutter icon extracted from
+# windows/runner/resources/app_icon.ico — swap it for a real "42 Guides"
+# icon whenever one exists. The same file is reused by the Linux/macOS
+# packaging scripts under packaging/, so keep it at this shared path.
+msix_config:
+  display_name: 42 Guides
+  publisher_display_name: Anita
+  identity_name: com.example.dev_log
+  msix_version: 1.0.0.0
+  logo_path: assets\icon\app_icon_256.png
+  capabilities: internetClient
+  languages: en-us
+  architecture: x64
