@@ -1,14 +1,26 @@
+import 'package:hive/hive.dart';
+
+part 'note.g.dart';
+
 /// A single note that belongs to a [Module] (via [moduleId]).
-///
-/// This is the first step of adding real notes: just the plain data shape.
-/// Hive persistence (the generated adapter, storage box, etc.) comes in a
-/// later step — this class isn't wired to storage yet.
-class Note {
+@HiveType(typeId: 2)
+class Note extends HiveObject {
+  @HiveField(0)
   final String id;
+
+  @HiveField(1)
   final String moduleId;
+
+  @HiveField(2)
   String title;
+
+  @HiveField(3)
   String content;
+
+  @HiveField(4)
   final DateTime createdAt;
+
+  @HiveField(5)
   DateTime updatedAt;
 
   Note({
@@ -21,9 +33,10 @@ class Note {
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
-  void update({String? title, String? content}) {
+  Future<void> update({String? title, String? content}) async {
     if (title != null) this.title = title;
     if (content != null) this.content = content;
     updatedAt = DateTime.now();
+    await save();
   }
 }
