@@ -82,23 +82,47 @@ class DatabaseHelper {
   static int getNotesCountForModule(String moduleId) =>
       _notes.values.where((n) => n.moduleId == moduleId).length;
 
-  static Future<Note> addNote(String moduleId, {String title = 'Untitled note', String content = ''}) async {
+  static Future<Note> addNote(
+    String moduleId, {
+    String title = 'Untitled note',
+    String content = '',
+    List<String>? tags,
+  }) async {
     final note = Note(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       moduleId: moduleId,
       title: title,
       content: content,
+      tags: tags,
     );
     await _notes.add(note);
     return note;
   }
 
-  static Future<void> updateNote(Note note, {String? title, String? content}) async {
-    await note.update(title: title, content: content);
+  static Future<void> updateNote(Note note,
+      {String? title, String? content, List<String>? tags}) async {
+    await note.update(title: title, content: content, tags: tags);
   }
 
   static Future<void> deleteNote(String noteId) async {
     final note = _notes.values.firstWhere((n) => n.id == noteId);
     await note.delete();
   }
+
+  /// All distinct tags across every note, with how many notes use each,
+  /// sorted by popularity (most-used first).
+  static List<MapEntry<String, int>> getAllTagsWithCounts() {
+    final counts = <String, int>{};
+    for (final note in _notes.values) {
+      for (final tag in note.tags) {
+        counts[tag] = (counts[tag] ?? 0) + 1;
+      }
+    }
+    final entries = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries;
+  }
+
+  static List<Note> getNotesByTag(String tag) =>
+      _notes.values.where((n) => n.tags.contains(tag)).toList();
 }

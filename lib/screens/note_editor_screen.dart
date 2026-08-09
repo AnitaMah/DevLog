@@ -22,6 +22,8 @@ class NoteEditorScreen extends StatefulWidget {
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
+  final TextEditingController _tagController = TextEditingController();
+  late List<String> _tags;
   bool get _isEditing => widget.note != null;
 
   @override
@@ -29,13 +31,29 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     super.initState();
     _titleController = TextEditingController(text: widget.note?.title ?? '');
     _contentController = TextEditingController(text: widget.note?.content ?? '');
+    _tags = List<String>.from(widget.note?.tags ?? []);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _tagController.dispose();
     super.dispose();
+  }
+
+  void _addTag(String raw) {
+    final tag = raw.trim();
+    setState(() {
+      if (tag.isNotEmpty && !_tags.contains(tag)) {
+        _tags.add(tag);
+      }
+      _tagController.clear();
+    });
+  }
+
+  void _removeTag(String tag) {
+    setState(() => _tags.remove(tag));
   }
 
   Future<void> _save() async {
@@ -45,9 +63,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final content = _contentController.text;
 
     if (_isEditing) {
-      await DatabaseHelper.updateNote(widget.note!, title: title, content: content);
+      await DatabaseHelper.updateNote(widget.note!, title: title, content: content, tags: _tags);
     } else {
-      await DatabaseHelper.addNote(widget.moduleId!, title: title, content: content);
+      await DatabaseHelper.addNote(widget.moduleId!, title: title, content: content, tags: _tags);
     }
 
     if (mounted) Navigator.pop(context);
@@ -115,6 +133,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
+            _buildTagEditor(),
+            const SizedBox(height: AppSpacing.md),
             Divider(color: AppColors.divider),
             const SizedBox(height: AppSpacing.md),
             Expanded(
@@ -134,6 +154,39 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTagEditor() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final tag in _tags)
+          Chip(
+            label: Text(tag, style: TextStyle(color: AppColors.tagColorFor(tag), fontSize: 12)),
+            backgroundColor: AppColors.tagColorFor(tag).withValues(alpha: 0.15),
+            side: BorderSide(color: AppColors.tagColorFor(tag).withValues(alpha: 0.4)),
+            deleteIcon: Icon(Icons.close, size: 14, color: AppColors.tagColorFor(tag)),
+            onDeleted: () => _removeTag(tag),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        SizedBox(
+          width: 120,
+          child: TextField(
+            controller: _tagController,
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            decoration: InputDecoration(
+              hintText: "+ add tag",
+              hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 12),
+              isDense: true,
+              border: InputBorder.none,
+            ),
+            onSubmitted: _addTag,
+          ),
+        ),
+      ],
     );
   }
 }

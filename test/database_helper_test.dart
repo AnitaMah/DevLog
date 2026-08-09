@@ -144,4 +144,46 @@ void main() {
       expect(DatabaseHelper.getNotesForModule('m1'), isEmpty);
     });
   });
+
+  group('Tags', () {
+    test('addNote stores tags on the note', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git'));
+      final note = await DatabaseHelper.addNote('m1', title: 'Rebase', tags: ['git', 'advanced']);
+
+      expect(note.tags, containsAll(['git', 'advanced']));
+    });
+
+    test('updateNote can replace a note\'s tags', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git'));
+      final note = await DatabaseHelper.addNote('m1', tags: ['old']);
+
+      await DatabaseHelper.updateNote(note, tags: ['new', 'shiny']);
+
+      expect(note.tags, ['new', 'shiny']);
+    });
+
+    test('getAllTagsWithCounts aggregates and sorts by popularity', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git'));
+      await DatabaseHelper.addNote('m1', tags: ['git', 'basics']);
+      await DatabaseHelper.addNote('m1', tags: ['git']);
+      await DatabaseHelper.addNote('m1', tags: ['git', 'basics']);
+
+      final counts = DatabaseHelper.getAllTagsWithCounts();
+
+      expect(counts.first.key, 'git');
+      expect(counts.first.value, 3);
+      expect(counts.firstWhere((e) => e.key == 'basics').value, 2);
+    });
+
+    test('getNotesByTag returns only notes with that tag', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git'));
+      await DatabaseHelper.addNote('m1', title: 'A', tags: ['git']);
+      await DatabaseHelper.addNote('m1', title: 'B', tags: ['docker']);
+
+      final tagged = DatabaseHelper.getNotesByTag('git');
+
+      expect(tagged, hasLength(1));
+      expect(tagged.first.title, 'A');
+    });
+  });
 }
