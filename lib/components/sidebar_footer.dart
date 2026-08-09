@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/models/user_model.dart';
 import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/components/edit_profile_screen.dart';
+import 'package:dev_log/screens/settings_screen.dart';
 
 class SidebarFooter extends StatelessWidget {
   const SidebarFooter({super.key});
@@ -22,34 +23,46 @@ class SidebarFooter extends StatelessWidget {
         final file = File(user.avatarPath);
         final fileExists = hasCustomAvatar && file.existsSync();
 
-        return InkWell(
-          onTap: () => Navigator.push(
-            context, 
-            MaterialPageRoute(builder: (context) => const EditProfileScreen())
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.cardBackground,
-                  // Перевіряємо, чи файл фізично існує перед відображенням
-                  backgroundImage: fileExists ? FileImage(file) : null,
-                  child: !fileExists
-                      ? Icon(Icons.person, color: AppColors.textPrimary)
-                      : null,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    user.name, 
-                    style: AppTextStyles.cardTitle, 
-                    overflow: TextOverflow.ellipsis
+        return Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: AppColors.cardBackground,
+                        // Перевіряємо, чи файл фізично існує перед відображенням
+                        backgroundImage: fileExists ? FileImage(file) : null,
+                        child: !fileExists
+                            ? Icon(Icons.person, color: AppColors.textPrimary)
+                            : null,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          user.name,
+                          style: AppTextStyles.cardTitle,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Icon(Icons.settings, size: 16, color: AppColors.textSecondary),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: Icon(Icons.settings, size: 16, color: AppColors.textSecondary),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                ),
+              ),
+            ],
           ),
         );
       },

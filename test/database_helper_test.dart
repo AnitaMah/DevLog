@@ -186,4 +186,18 @@ void main() {
       expect(tagged.first.title, 'A');
     });
   });
+
+  group('clearAllData', () {
+    test('removes every module and note', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git'));
+      await DatabaseHelper.addModule(Module(id: 'm2', title: 'Docker'));
+      await DatabaseHelper.addNote('m1', title: 'A');
+      await DatabaseHelper.addNote('m2', title: 'B');
+
+      await DatabaseHelper.clearAllData();
+
+      expect(DatabaseHelper.getAllModules(), isEmpty);
+      expect(DatabaseHelper.getAllNotes(), isEmpty);
+    });
+  });
 }

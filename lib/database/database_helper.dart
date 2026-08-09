@@ -125,4 +125,13 @@ class DatabaseHelper {
 
   static List<Note> getNotesByTag(String tag) =>
       _notes.values.where((n) => n.tags.contains(tag)).toList();
+
+  // --- Danger zone ---
+
+  /// Deletes every module and note. Leaves the user's profile and theme
+  /// preference untouched.
+  static Future<void> clearAllData() async {
+    await _modules.clear();
+    await _notes.clear();
+  }
 }
