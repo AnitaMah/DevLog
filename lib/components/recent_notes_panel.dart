@@ -32,69 +32,75 @@ class RecentNotesPanel extends StatelessWidget {
               ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
             final topNotes = recent.take(5).toList();
 
-            return Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: AppColors.cardBackground,
+            // Material (not a decorated Container) so the note rows'
+            // InkWell ripples have a Material ancestor to paint on without
+            // an opaque box in the way.
+            return Material(
+              color: AppColors.cardBackground,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.cardBorder),
+                side: BorderSide(color: AppColors.cardBorder),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Recent Notes", style: AppTextStyles.title),
-                  const SizedBox(height: AppSpacing.md),
-                  if (topNotes.isEmpty)
-                    Text("No notes yet.", style: AppTextStyles.smallText)
-                  else
-                    ...topNotes.map((note) {
-                      final module = modulesById[note.moduleId];
-                      final moduleTitle = module?.title ?? "Unknown";
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Recent Notes", style: AppTextStyles.title),
+                    const SizedBox(height: AppSpacing.md),
+                    if (topNotes.isEmpty)
+                      Text("No notes yet.", style: AppTextStyles.smallText)
+                    else
+                      ...topNotes.map((note) {
+                        final module = modulesById[note.moduleId];
+                        final moduleTitle = module?.title ?? "Unknown";
 
-                      return InkWell(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: Row(
-                            children: [
-                              Icon(Icons.description_outlined,
-                                  size: 16, color: AppColors.textSecondary),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  note.title,
-                                  style: AppTextStyles.body,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.tagColorFor(moduleTitle).withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                                ),
-                                child: Text(
-                                  moduleTitle,
-                                  style: TextStyle(
-                                    color: AppColors.tagColorFor(moduleTitle),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
+                        return InkWell(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: Row(
+                              children: [
+                                Icon(Icons.description_outlined,
+                                    size: 16, color: AppColors.textSecondary),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Text(
+                                    note.title,
+                                    style: AppTextStyles.body,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text(_timeAgo(note.updatedAt), style: AppTextStyles.smallText),
-                            ],
+                                const SizedBox(width: AppSpacing.sm),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.tagColorFor(moduleTitle).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                                  ),
+                                  child: Text(
+                                    moduleTitle,
+                                    style: TextStyle(
+                                      color: AppColors.tagColorFor(moduleTitle),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Text(_timeAgo(note.updatedAt), style: AppTextStyles.smallText),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }),
-                ],
+                        );
+                      }),
+                  ],
+                ),
               ),
             );
           },

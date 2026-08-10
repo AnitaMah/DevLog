@@ -31,21 +31,12 @@ class RecentModulesSection extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Continue where you left off",
-                    style: AppTextStyles.title,
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text(
-                      "View all",
-                      style: TextStyle(color: AppColors.accentPurpleLight, fontSize: 13),
-                    ),
-                  ),
-                ],
+              // "Your Modules" below already shows every module, so there's
+              // no separate destination for a "View all" link here - it
+              // used to be a dead button (empty onPressed) that did nothing.
+              child: Text(
+                "Continue where you left off",
+                style: AppTextStyles.title,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
