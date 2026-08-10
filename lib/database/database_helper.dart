@@ -59,7 +59,22 @@ class DatabaseHelper {
     await module.save();
   }
 
+  /// Looks up a module by id, or null if it doesn't exist (e.g. it was
+  /// already deleted by a concurrent action). Deliberately not using
+  /// `Iterable.firstWhere` here, since that throws a StateError - and an
+  /// uncaught StateError from a double-tapped delete button would crash
+  /// the app rather than just being a harmless no-op.
+  static Module? _findModule(String moduleId) {
+    for (final m in _modules.values) {
+      if (m.id == moduleId) return m;
+    }
+    return null;
+  }
+
   static Future<void> deleteModule(String moduleId) async {
+    final module = _findModule(moduleId);
+    if (module == null) return; // already deleted - nothing to do
+
     // Delete the module along with any submodules that point at it,
     // and any notes that belong to it.
     final children = getSubmodules(moduleId);
@@ -69,7 +84,6 @@ class DatabaseHelper {
     for (final note in getNotesForModule(moduleId)) {
       await note.delete();
     }
-    final module = _modules.values.firstWhere((m) => m.id == moduleId);
     await module.delete();
   }
 
@@ -107,8 +121,13 @@ class DatabaseHelper {
   }
 
   static Future<void> deleteNote(String noteId) async {
-    final note = _notes.values.firstWhere((n) => n.id == noteId);
-    await note.delete();
+    for (final note in _notes.values) {
+      if (note.id == noteId) {
+        await note.delete();
+        return;
+      }
+    }
+    // Already deleted (e.g. a concurrent delete) - nothing to do.
   }
 
   /// All distinct tags across every note, with how many notes use each,

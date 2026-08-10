@@ -90,6 +90,18 @@ void main() {
       expect(DatabaseHelper.getAllModules(), isEmpty);
       expect(DatabaseHelper.getAllNotes(), isEmpty);
     });
+
+    test('deleteModule on an already-deleted id is a no-op, not a crash', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Networking'));
+
+      await DatabaseHelper.deleteModule('m1');
+      // Second delete of the same id (e.g. a double-tapped delete button,
+      // or deleting a submodule that a parent's cascade already removed)
+      // should not throw.
+      await DatabaseHelper.deleteModule('m1');
+
+      expect(DatabaseHelper.getAllModules(), isEmpty);
+    });
   });
 
   group('Note CRUD', () {
@@ -139,6 +151,18 @@ void main() {
       await DatabaseHelper.addModule(Module(id: 'm1', title: 'Systeme'));
       final note = await DatabaseHelper.addNote('m1', title: 'Temp');
 
+      await DatabaseHelper.deleteNote(note.id);
+
+      expect(DatabaseHelper.getNotesForModule('m1'), isEmpty);
+    });
+
+    test('deleteNote on an already-deleted id is a no-op, not a crash', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Systeme'));
+      final note = await DatabaseHelper.addNote('m1', title: 'Temp');
+
+      await DatabaseHelper.deleteNote(note.id);
+      // Second delete of the same id (e.g. a double-tapped delete button)
+      // should not throw.
       await DatabaseHelper.deleteNote(note.id);
 
       expect(DatabaseHelper.getNotesForModule('m1'), isEmpty);
