@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/components/edit_profile_screen.dart';
+import 'package:dev_log/helpers/folder_import.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -155,6 +156,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: AppSpacing.xl),
           _SectionHeader("Data"),
+          _SettingsTile(
+            icon: Icons.folder_open_outlined,
+            title: "Import code folder",
+            trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled),
+            onTap: () => importCodeFolder(context),
+          ),
           _SettingsTile(
             icon: Icons.upload_outlined,
             title: "Export data",
