@@ -30,10 +30,9 @@ flutter:
 # Windows packaging (MSIX installer). Build with:
 #   flutter pub get
 #   flutter pub run msix:create
-# logo_path currently points at the default Flutter icon extracted from
-# windows/runner/resources/app_icon.ico — swap it for a real "42 Guides"
-# icon whenever one exists. The same file is reused by the Linux/macOS
-# packaging scripts under packaging/, so keep it at this shared path.
+# logo_path is the app's actual icon (purple square, white "42", matching
+# the in-app header logo) - also reused by the Linux/macOS packaging
+# scripts under packaging/, so keep it at this shared path.
 msix_config:
   display_name: 42 Guides
   publisher_display_name: Anita

@@ -12,9 +12,8 @@ flutter pub get
 flutter pub run msix:create
 ```
 
-The app icon (`assets/icon/app_icon_256.png`) is currently the default
-Flutter icon extracted from `windows/runner/resources/app_icon.ico` — swap
-it for real "42 Guides" branding when available.
+The app icon (`assets/icon/app_icon_256.png`) is the real "42 Guides" mark
+(purple square, white "42"), matching the in-app header logo.
 
 ## Linux — AppImage
 
