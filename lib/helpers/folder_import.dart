@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/models/module.dart';
+import 'package:dev_log/screens/module_details_screen.dart';
 import 'package:dev_log/theme/app_theme.dart';
 
 /// Directory names that are almost never worth importing as notes - build
@@ -68,14 +69,14 @@ Future<void> importCodeFolder(BuildContext context) async {
 
   int imported = 0;
   int skipped = 0;
+  final module = Module(
+    id: DateTime.now().millisecondsSinceEpoch.toString(),
+    title: moduleName,
+    iconName: 'folder',
+    description: 'Imported from $folderPath',
+  );
 
   try {
-    final module = Module(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: moduleName,
-      iconName: 'folder',
-      description: 'Imported from $folderPath',
-    );
     await DatabaseHelper.addModule(module);
 
     final files = _collectFiles(dir);
@@ -106,15 +107,36 @@ Future<void> importCodeFolder(BuildContext context) async {
     if (files.length > _maxFiles) {
       skipped += files.length - _maxFiles;
     }
+
+    // Don't leave an empty module behind if nothing in the folder was
+    // actually importable (e.g. it only had binaries/images).
+    if (imported == 0) {
+      await DatabaseHelper.deleteModule(module.id);
+    }
   } finally {
     if (context.mounted) Navigator.pop(context); // close the progress dialog
   }
 
   if (context.mounted) {
-    final message = skipped > 0
-        ? "Imported $imported file(s) into \"$moduleName\" ($skipped skipped)."
-        : "Imported $imported file(s) into \"$moduleName\".";
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    final message = imported == 0
+        ? "No importable text files found in \"$moduleName\"."
+        : skipped > 0
+            ? "Imported $imported file(s) into \"$moduleName\" ($skipped skipped)."
+            : "Imported $imported file(s) into \"$moduleName\".";
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      action: imported > 0
+          ? SnackBarAction(
+              label: 'View',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ModuleDetailsScreen(module: module)),
+                );
+              },
+            )
+          : null,
+    ));
   }
 }
 
