@@ -24,13 +24,16 @@ Future<void> createNoteFlow(BuildContext context) async {
   );
   if (selected == null) return;
 
-  final note = await DatabaseHelper.addNote(selected.id);
   await selected.updateLastOpenedAt();
 
   if (context.mounted) {
+    // Pass moduleId (not a pre-created note) so the note editor only
+    // actually creates a Note record if the user saves it - otherwise
+    // backing out of an empty "New Note" used to leave a permanent
+    // "Untitled note" behind in the module.
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+      MaterialPageRoute(builder: (_) => NoteEditorScreen(moduleId: selected.id)),
     );
   }
 }

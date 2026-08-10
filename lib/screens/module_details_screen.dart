@@ -6,7 +6,6 @@ import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/components/module_tile.dart';
 import 'package:dev_log/components/note_tile.dart';
-import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/helpers/module_actions.dart';
 import 'package:dev_log/screens/note_editor_screen.dart';
 
@@ -64,12 +63,14 @@ class ModuleDetailsScreen extends StatelessWidget {
                 heroTag: "add_note",
                 backgroundColor: AppColors.accentPurple,
                 onPressed: () async {
-                  final note = await DatabaseHelper.addNote(module.id);
                   await module.updateLastOpenedAt();
+                  // Pass moduleId (not a pre-created note) so backing out
+                  // of an empty note doesn't leave an "Untitled note"
+                  // behind - the editor only creates it on save.
                   if (context.mounted) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+                      MaterialPageRoute(builder: (_) => NoteEditorScreen(moduleId: module.id)),
                     );
                   }
                 },
