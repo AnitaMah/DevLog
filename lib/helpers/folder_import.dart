@@ -77,7 +77,7 @@ Future<void> importCodeFolder(BuildContext context, {Module? intoModule}) async 
   // Don't leave an empty module behind if nothing in the folder was
   // actually importable (e.g. it only had binaries/images) - but only
   // if we created it ourselves; never delete a module the user already had.
-  if (result.imported == 0 && createdNewModule) {
+  if (result.imported == 0 && result.updated == 0 && createdNewModule) {
     await DatabaseHelper.deleteModule(module.id);
   }
   if (context.mounted) {
@@ -138,13 +138,19 @@ Future<void> importFiles(BuildContext context, {Module? intoModule}) async {
 
 class _ImportResult {
   final int imported;
+  final int updated;
   final int skipped;
-  const _ImportResult(this.imported, this.skipped);
+  const _ImportResult(this.imported, this.updated, this.skipped);
 }
 
 /// Shows a non-dismissible progress dialog, reads each file in
-/// [filesWithTitles] and creates a note for it in the module identified by
-/// [moduleId] via [DatabaseHelper.addNote], then closes the dialog.
+/// [filesWithTitles] and creates or updates a note for it in the module
+/// identified by [moduleId], then closes the dialog.
+///
+/// If a note with the same title already exists in that module (e.g. this
+/// folder/file was imported before), its content is overwritten in place
+/// instead of creating a duplicate - so re-importing a folder after pulling
+/// new changes refreshes existing notes rather than piling up copies.
 Future<_ImportResult> _runImport(
   BuildContext context,
   List<MapEntry<File, String>> filesWithTitles,
@@ -168,7 +174,14 @@ Future<_ImportResult> _runImport(
   // read loop blocks the UI thread.
   await Future<void>.delayed(const Duration(milliseconds: 50));
 
+  // Index existing notes in this module by title so we can detect re-imports
+  // and update in place instead of creating duplicates.
+  final existingByTitle = {
+    for (final note in DatabaseHelper.getNotesForModule(moduleId)) note.title: note,
+  };
+
   int imported = 0;
+  int updated = 0;
   int skipped = 0;
 
   try {
@@ -183,14 +196,22 @@ Future<_ImportResult> _runImport(
         }
         final content = await file.readAsString();
         final ext = _extensionOf(title);
+        final tags = ext != null ? [ext] : null;
 
-        await DatabaseHelper.addNote(
-          moduleId,
-          title: title,
-          content: content,
-          tags: ext != null ? [ext] : null,
-        );
-        imported++;
+        final existing = existingByTitle[title];
+        if (existing != null) {
+          await DatabaseHelper.updateNote(existing, content: content, tags: tags);
+          updated++;
+        } else {
+          final note = await DatabaseHelper.addNote(
+            moduleId,
+            title: title,
+            content: content,
+            tags: tags,
+          );
+          existingByTitle[title] = note; // guard against duplicate titles within this same batch
+          imported++;
+        }
       } catch (_) {
         // Not valid UTF-8 text (likely a binary file), or unreadable - skip it.
         skipped++;
@@ -203,7 +224,7 @@ Future<_ImportResult> _runImport(
     if (context.mounted) Navigator.pop(context); // close the progress dialog
   }
 
-  return _ImportResult(imported, skipped);
+  return _ImportResult(imported, updated, skipped);
 }
 
 void _showSummary(
@@ -212,15 +233,18 @@ void _showSummary(
   required Module module,
   required _ImportResult result,
 }) {
-  final message = result.imported == 0
+  final parts = <String>[];
+  if (result.imported > 0) parts.add("${result.imported} added");
+  if (result.updated > 0) parts.add("${result.updated} updated");
+  if (result.skipped > 0) parts.add("${result.skipped} skipped");
+
+  final message = parts.isEmpty
       ? "No importable text files found."
-      : result.skipped > 0
-          ? "Imported ${result.imported} file(s) into \"$moduleName\" (${result.skipped} skipped)."
-          : "Imported ${result.imported} file(s) into \"$moduleName\".";
+      : "${parts.join(', ')} in \"$moduleName\".";
 
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
     content: Text(message),
-    action: result.imported > 0
+    action: (result.imported > 0 || result.updated > 0)
         ? SnackBarAction(
             label: 'View',
             onPressed: () {
