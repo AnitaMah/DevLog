@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'package:dev_log/components/module_picker_dialog.dart';
 import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/screens/module_details_screen.dart';
@@ -46,8 +47,89 @@ Future<void> importCodeFolder(BuildContext context) async {
   if (moduleName == null) return;
   if (!context.mounted) return;
 
-  // Non-dismissible progress indicator - importing a few hundred files can
-  // take a moment.
+  final module = Module(
+    id: DateTime.now().millisecondsSinceEpoch.toString(),
+    title: moduleName,
+    iconName: 'folder',
+    description: 'Imported from $folderPath',
+  );
+  await DatabaseHelper.addModule(module);
+  if (!context.mounted) return;
+
+  final files = _collectFiles(dir);
+  final entries = [for (final f in files) MapEntry(f, _relativePath(f.path, dir.path))];
+
+  final result = await _runImport(context, entries, module.id);
+
+  // Don't leave an empty module behind if nothing in the folder was
+  // actually importable (e.g. it only had binaries/images).
+  if (result.imported == 0) {
+    await DatabaseHelper.deleteModule(module.id);
+  }
+  if (context.mounted) {
+    _showSummary(context, moduleName: moduleName, module: module, result: result);
+  }
+}
+
+/// Picks one or more individual files (of any type) and adds each as a
+/// note - tagged by extension - to an existing module, or a newly created
+/// one if there are no modules yet. Unlike [importCodeFolder], this isn't
+/// tied to a single folder's structure, so it's the better fit for adding
+/// a handful of unrelated files (e.g. a PDF export, a couple of scripts,
+/// some reference docs) to a guide you already have.
+Future<void> importFiles(BuildContext context) async {
+  final result = await FilePicker.platform.pickFiles(
+    dialogTitle: 'Select files to import',
+    allowMultiple: true,
+    type: FileType.any,
+  );
+  if (result == null || result.files.isEmpty) return;
+  if (!context.mounted) return;
+
+  final modules = DatabaseHelper.getAllModules();
+  Module? targetModule;
+
+  if (modules.isEmpty) {
+    final name = await _promptForModuleName(context, 'Imported files');
+    if (name == null) return;
+    if (!context.mounted) return;
+    targetModule = Module(id: DateTime.now().millisecondsSinceEpoch.toString(), title: name);
+    await DatabaseHelper.addModule(targetModule);
+  } else {
+    targetModule = await showDialog<Module>(
+      context: context,
+      builder: (_) => ModulePickerDialog(modules: modules),
+    );
+    if (targetModule == null) return;
+  }
+  if (!context.mounted) return;
+
+  final entries = [
+    for (final f in result.files)
+      if (f.path != null) MapEntry(File(f.path!), f.name),
+  ];
+
+  final importResult = await _runImport(context, entries, targetModule.id);
+
+  if (context.mounted) {
+    _showSummary(context, moduleName: targetModule.title, module: targetModule, result: importResult);
+  }
+}
+
+class _ImportResult {
+  final int imported;
+  final int skipped;
+  const _ImportResult(this.imported, this.skipped);
+}
+
+/// Shows a non-dismissible progress dialog, reads each file in
+/// [filesWithTitles] and creates a note for it in the module identified by
+/// [moduleId] via [DatabaseHelper.addNote], then closes the dialog.
+Future<_ImportResult> _runImport(
+  BuildContext context,
+  List<MapEntry<File, String>> filesWithTitles,
+  String moduleId,
+) async {
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -62,27 +144,17 @@ Future<void> importCodeFolder(BuildContext context) async {
       ),
     ),
   );
-
-  // Let the progress dialog actually paint before the (synchronous, and
-  // potentially slow for a big folder) directory scan blocks the UI thread.
+  // Let the progress dialog actually paint before the potentially slow
+  // read loop blocks the UI thread.
   await Future<void>.delayed(const Duration(milliseconds: 50));
 
   int imported = 0;
   int skipped = 0;
-  final module = Module(
-    id: DateTime.now().millisecondsSinceEpoch.toString(),
-    title: moduleName,
-    iconName: 'folder',
-    description: 'Imported from $folderPath',
-  );
 
   try {
-    await DatabaseHelper.addModule(module);
-
-    final files = _collectFiles(dir);
-    for (final file in files.take(_maxFiles)) {
-      final relativePath = _relativePath(file.path, dir.path);
-
+    for (final entry in filesWithTitles.take(_maxFiles)) {
+      final file = entry.key;
+      final title = entry.value;
       try {
         final size = await file.length();
         if (size > _maxFileSizeBytes) {
@@ -90,11 +162,11 @@ Future<void> importCodeFolder(BuildContext context) async {
           continue;
         }
         final content = await file.readAsString();
-        final ext = _extensionOf(relativePath);
+        final ext = _extensionOf(title);
 
         await DatabaseHelper.addNote(
-          module.id,
-          title: relativePath,
+          moduleId,
+          title: title,
           content: content,
           tags: ext != null ? [ext] : null,
         );
@@ -104,40 +176,42 @@ Future<void> importCodeFolder(BuildContext context) async {
         skipped++;
       }
     }
-    if (files.length > _maxFiles) {
-      skipped += files.length - _maxFiles;
-    }
-
-    // Don't leave an empty module behind if nothing in the folder was
-    // actually importable (e.g. it only had binaries/images).
-    if (imported == 0) {
-      await DatabaseHelper.deleteModule(module.id);
+    if (filesWithTitles.length > _maxFiles) {
+      skipped += filesWithTitles.length - _maxFiles;
     }
   } finally {
     if (context.mounted) Navigator.pop(context); // close the progress dialog
   }
 
-  if (context.mounted) {
-    final message = imported == 0
-        ? "No importable text files found in \"$moduleName\"."
-        : skipped > 0
-            ? "Imported $imported file(s) into \"$moduleName\" ($skipped skipped)."
-            : "Imported $imported file(s) into \"$moduleName\".";
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      action: imported > 0
-          ? SnackBarAction(
-              label: 'View',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ModuleDetailsScreen(module: module)),
-                );
-              },
-            )
-          : null,
-    ));
-  }
+  return _ImportResult(imported, skipped);
+}
+
+void _showSummary(
+  BuildContext context, {
+  required String moduleName,
+  required Module module,
+  required _ImportResult result,
+}) {
+  final message = result.imported == 0
+      ? "No importable text files found."
+      : result.skipped > 0
+          ? "Imported ${result.imported} file(s) into \"$moduleName\" (${result.skipped} skipped)."
+          : "Imported ${result.imported} file(s) into \"$moduleName\".";
+
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text(message),
+    action: result.imported > 0
+        ? SnackBarAction(
+            label: 'View',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ModuleDetailsScreen(module: module)),
+              );
+            },
+          )
+        : null,
+  ));
 }
 
 Future<String?> _promptForModuleName(BuildContext context, String suggestedName) {

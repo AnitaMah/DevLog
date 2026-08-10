@@ -163,6 +163,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => importCodeFolder(context),
           ),
           _SettingsTile(
+            icon: Icons.note_add_outlined,
+            title: "Import files",
+            trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled),
+            onTap: () => importFiles(context),
+          ),
+          _SettingsTile(
             icon: Icons.upload_outlined,
             title: "Export data",
             trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled),
