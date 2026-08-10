@@ -47,14 +47,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  void _saveProfile() {
-    _user.name = _nameController.text;
-    _user.email = _emailController.text;
+  Future<void> _saveProfile() async {
+    final name = _nameController.text.trim();
+    _user.name = name.isEmpty ? _user.name : name;
+    _user.email = _emailController.text.trim();
     if (_selectedAvatar != null) {
       _user.avatarPath = _selectedAvatar!.path;
     }
-    _user.save();
-    Navigator.pop(context);
+    // Wait for the write to actually land before navigating away, instead
+    // of firing it and popping immediately - matches every other save flow
+    // in the app (notes, modules, theme preference).
+    await _user.save();
+    if (mounted) Navigator.pop(context);
   }
 
   @override
