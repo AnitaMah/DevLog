@@ -35,54 +35,59 @@ class ModuleGrid extends StatelessWidget {
   }
 
   Widget _buildCard(BuildContext context, Module module) {
-    return Container(
+    // Material (not a decorated Container) so the InkWell's tap ripple has
+    // a Material ancestor to paint on without an opaque box in the way.
+    return SizedBox(
       width: 220,
-      decoration: BoxDecoration(
+      child: Material(
         color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Stack(
-        children: [
-          InkWell(
-            onTap: () => showDialog(
-              context: context, 
-              builder: (c) => ModuleInputDialog(module: module, isEditing: true)
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  IconHelper.getFaIcon(module.iconName, size: 20, color: AppColors.accentPurple),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(module.title, style: AppTextStyles.cardTitle, overflow: TextOverflow.ellipsis),
-                        ValueListenableBuilder<Box<Note>>(
-                          valueListenable: Hive.box<Note>('notes').listenable(),
-                          builder: (context, _, _) => Text(
-                            "${DatabaseHelper.getNotesCountForModule(module.id)} notes",
-                            style: AppTextStyles.cardSubtitle,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: AppColors.cardBorder),
+        ),
+        child: Stack(
+          children: [
+            InkWell(
+              onTap: () => showDialog(
+                context: context,
+                builder: (c) => ModuleInputDialog(module: module, isEditing: true),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    IconHelper.getFaIcon(module.iconName, size: 20, color: AppColors.accentPurple),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(module.title, style: AppTextStyles.cardTitle, overflow: TextOverflow.ellipsis),
+                          ValueListenableBuilder<Box<Note>>(
+                            valueListenable: Hive.box<Note>('notes').listenable(),
+                            builder: (context, _, _) => Text(
+                              "${DatabaseHelper.getNotesCountForModule(module.id)} notes",
+                              style: AppTextStyles.cardSubtitle,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          Positioned(
-            top: 4,
-            right: 4,
-            child: IconButton(
-              icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
-              onPressed: () => confirmAndDeleteModule(context, module),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
+                onPressed: () => confirmAndDeleteModule(context, module),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
