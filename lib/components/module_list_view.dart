@@ -5,6 +5,7 @@ import 'package:dev_log/models/module.dart';
 import 'package:dev_log/models/note.dart';
 import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
+import 'package:dev_log/helpers/module_actions.dart';
 import 'package:dev_log/database/database_helper.dart';
 
 /// Row-based alternative to [ModuleGrid], toggled from the dashboard's
@@ -50,7 +51,7 @@ class ModuleListView extends StatelessWidget {
                         ),
                         trailing: IconButton(
                           icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
-                          onPressed: () => DatabaseHelper.deleteModule(module.id),
+                          onPressed: () => confirmAndDeleteModule(context, module),
                         ),
                       ),
                     ),

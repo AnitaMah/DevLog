@@ -6,6 +6,7 @@ import 'package:dev_log/models/note.dart';
 import 'package:dev_log/components/add_module_card.dart';
 import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
+import 'package:dev_log/helpers/module_actions.dart';
 import 'package:dev_log/database/database_helper.dart';
 
 class ModuleGrid extends StatelessWidget {
@@ -24,7 +25,7 @@ class ModuleGrid extends StatelessWidget {
             spacing: 12,
             runSpacing: 12,
             children: [
-              ...modules.map((m) => _buildCard(context, m, box)),
+              ...modules.map((m) => _buildCard(context, m)),
               const SizedBox(width: 220, child: AddModuleCard()),
             ],
           ),
@@ -33,7 +34,7 @@ class ModuleGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildCard(BuildContext context, Module module, Box<Module> box) {
+  Widget _buildCard(BuildContext context, Module module) {
     return Container(
       width: 220,
       decoration: BoxDecoration(
@@ -78,44 +79,11 @@ class ModuleGrid extends StatelessWidget {
             right: 4,
             child: IconButton(
               icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
-              onPressed: () => _showDeleteConfirmationDialog(context, module, box),
+              onPressed: () => confirmAndDeleteModule(context, module),
             ),
           ),
         ],
       ),
     );
-  }
-
-  void _showDeleteConfirmationDialog(BuildContext context, Module module, Box<Module> box) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Module"),
-        content: const Text("Are you sure?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          TextButton(
-            onPressed: () {
-              _deleteModuleAndSubmodules(module, box);
-              Navigator.pop(context);
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Збережена функція видалення
-  void _deleteModuleAndSubmodules(Module module, Box<Module> box) {
-    final submodules = box.values
-        .where((m) => m.parentId == module.id)
-        .toList();
-
-    for (final submodule in submodules) {
-      _deleteModuleAndSubmodules(submodule, box);
-    }
-
-    module.delete();
   }
 }
