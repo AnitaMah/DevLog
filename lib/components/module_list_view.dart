@@ -7,6 +7,7 @@ import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/helpers/icon_helper.dart';
 import 'package:dev_log/helpers/module_actions.dart';
 import 'package:dev_log/database/database_helper.dart';
+import 'package:dev_log/screens/module_details_screen.dart';
 
 /// Row-based alternative to [ModuleGrid], toggled from the dashboard's
 /// grid/list view switch.
@@ -45,13 +46,28 @@ class ModuleListView extends StatelessWidget {
                             style: AppTextStyles.cardSubtitle,
                           ),
                         ),
-                        onTap: () => showDialog(
-                          context: context,
-                          builder: (c) => ModuleInputDialog(module: module, isEditing: true),
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
-                          onPressed: () => confirmAndDeleteModule(context, module),
+                        onTap: () {
+                          module.updateLastOpenedAt();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => ModuleDetailsScreen(module: module)),
+                          );
+                        },
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.edit_outlined, size: 14, color: AppColors.textDisabled),
+                              onPressed: () => showDialog(
+                                context: context,
+                                builder: (c) => ModuleInputDialog(module: module, isEditing: true),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, size: 14, color: AppColors.textDisabled),
+                              onPressed: () => confirmAndDeleteModule(context, module),
+                            ),
+                          ],
                         ),
                       ),
                     ),

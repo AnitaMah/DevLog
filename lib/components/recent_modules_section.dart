@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/components/recent_module_card.dart';
+import 'package:dev_log/screens/module_details_screen.dart';
 import 'package:dev_log/theme/app_theme.dart';
 
 /// Віджет для відображення секції "Continue where you left off".
@@ -62,6 +63,10 @@ class RecentModulesSection extends StatelessWidget {
                       module: module,
                       onTap: () {
                         module.updateLastOpenedAt();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ModuleDetailsScreen(module: module)),
+                        );
                       },
                     ),
                   );
