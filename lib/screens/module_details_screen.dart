@@ -7,6 +7,7 @@ import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/components/module_tile.dart';
 import 'package:dev_log/components/note_tile.dart';
 import 'package:dev_log/helpers/module_actions.dart';
+import 'package:dev_log/helpers/folder_import.dart';
 import 'package:dev_log/screens/note_editor_screen.dart';
 
 class ModuleDetailsScreen extends StatelessWidget {
@@ -49,6 +50,14 @@ class ModuleDetailsScreen extends StatelessWidget {
           floatingActionButton: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              FloatingActionButton(
+                heroTag: "import_from_pc",
+                backgroundColor: AppColors.cardBackground,
+                tooltip: "Import from PC",
+                onPressed: () => _showImportMenu(context, module),
+                child: Icon(Icons.drive_folder_upload_outlined, color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.md),
               FloatingActionButton(
                 heroTag: "add_submodule",
                 backgroundColor: AppColors.cardBackground,
@@ -128,4 +137,52 @@ class ModuleDetailsScreen extends StatelessWidget {
       },
     );
   }
+}
+
+/// Bottom sheet offering the two ways to bring outside files into
+/// [module] directly - skipping the "which module?" step entirely, since
+/// we're already looking at the target module.
+void _showImportMenu(BuildContext context, Module module) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.sidebarBackground,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(Icons.folder_open_outlined, color: AppColors.textSecondary),
+            title: Text(
+              "Import folder",
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            subtitle: Text(
+              "Add every file in a folder as notes in \"${module.title}\"",
+              style: TextStyle(color: AppColors.textDisabled),
+            ),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              importCodeFolder(context, intoModule: module);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.note_add_outlined, color: AppColors.textSecondary),
+            title: Text(
+              "Import files",
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            subtitle: Text(
+              "Pick one or more files to add to \"${module.title}\"",
+              style: TextStyle(color: AppColors.textDisabled),
+            ),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              importFiles(context, intoModule: module);
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+      ),
+    ),
+  );
 }
