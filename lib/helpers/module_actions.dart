@@ -7,10 +7,16 @@ import 'package:dev_log/theme/app_theme.dart';
 /// - which correctly cascades to submodules *and* their notes.
 ///
 /// Shared by every place a module can be deleted from (grid view, list
-/// view, ...) so there's exactly one confirmation dialog and one deletion
-/// code path to keep in sync, rather than each screen reimplementing (and
-/// risking drifting out of sync with) the cascade logic.
-Future<void> confirmAndDeleteModule(BuildContext context, Module module) async {
+/// view, module details screen, ...) so there's exactly one confirmation
+/// dialog and one deletion code path to keep in sync, rather than each
+/// screen reimplementing (and risking drifting out of sync with) the
+/// cascade logic.
+///
+/// Returns true if the module was actually deleted (user confirmed),
+/// false if they cancelled - callers viewing the now-deleted module (e.g.
+/// ModuleDetailsScreen showing the module itself) can use this to know
+/// whether they need to navigate away.
+Future<bool> confirmAndDeleteModule(BuildContext context, Module module) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
@@ -36,5 +42,7 @@ Future<void> confirmAndDeleteModule(BuildContext context, Module module) async {
 
   if (confirmed == true) {
     await DatabaseHelper.deleteModule(module.id);
+    return true;
   }
+  return false;
 }
