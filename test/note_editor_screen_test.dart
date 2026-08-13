@@ -66,4 +66,25 @@ void main() {
     expect(notes.first.title, 'My New Note');
     expect(notes.first.moduleId, 'm1');
   });
+
+  testWidgets('typing a tag but not pressing Enter still saves it', (tester) async {
+    // Regression test: the tag input box only turned text into a real tag
+    // on Enter (onSubmitted). Typing a tag and then clicking the save
+    // button directly - without hitting Enter first - used to silently
+    // drop that tag with no warning at all.
+    await tester.pumpWidget(const MaterialApp(
+      home: NoteEditorScreen(moduleId: 'm1'),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextField, 'Note title'), 'Tagged Note');
+    await tester.enterText(find.widgetWithText(TextField, '+ add tag'), 'flutter');
+    // Deliberately not pressing Enter - go straight to save.
+    await tester.tap(find.byIcon(Icons.check));
+    await tester.pumpAndSettle();
+
+    final notes = DatabaseHelper.getAllNotes();
+    expect(notes, hasLength(1));
+    expect(notes.first.tags, contains('flutter'));
+  });
 }

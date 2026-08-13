@@ -43,7 +43,12 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     if (_bypassUnsavedGuard) return false;
     return _titleController.text != _initialTitle ||
         _contentController.text != _initialContent ||
-        !listEquals(_tags, _initialTags);
+        !listEquals(_tags, _initialTags) ||
+        // Text typed into the tag box isn't a tag until Enter is pressed -
+        // without this, typing a tag and then hitting the save button (or
+        // Ctrl+S, or closing the window) would silently drop it with no
+        // unsaved-changes warning at all.
+        _tagController.text.trim().isNotEmpty;
   }
 
   @override
@@ -89,6 +94,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Future<void> _save() async {
+    // Commit any tag text still sitting in the input box (typed but never
+    // confirmed with Enter) so saving doesn't silently drop it.
+    final pendingTag = _tagController.text.trim();
+    if (pendingTag.isNotEmpty && !_tags.contains(pendingTag)) {
+      _tags.add(pendingTag);
+    }
+    _tagController.clear();
+
     final title = _titleController.text.trim().isEmpty
         ? 'Untitled note'
         : _titleController.text.trim();
