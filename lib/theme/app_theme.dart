@@ -33,6 +33,13 @@ class AppColors {
   static const Color accentPurple = Color(0xFF7C4DFF);
   static const Color accentPurpleLight = Color(0xFF9575CD);
 
+  // Accent: teal, used for links and primary-button fills.
+  static const Color accent = Color(0xFF2DD4BF);
+
+  /// Text color used *on* an accent-filled surface (dark-on-teal, not
+  /// white-on-teal).
+  static const Color accentOnColor = Color(0xFF042F2A);
+
   // Текст та елементи
   static Color get textPrimary => isDark ? Colors.white : const Color(0xFF1A1A1E);
   static Color get textSecondary => isDark ? Colors.white70 : const Color(0xFF55565C);
@@ -68,6 +75,19 @@ class AppRadius {
   static const double sm = 6.0;
   static const double md = 8.0;
   static const double lg = 12.0;
+}
+
+/// Standard square footprints for icon buttons, so every icon button in
+/// the app shares one of two consistent sizes instead of each picking its
+/// own padding/constraints.
+class AppButtonSize {
+  /// Compact pill-shaped icon buttons that stand alone in a bar (theme
+  /// toggle, grid/list view toggle, top-bar avatar).
+  static const double compact = 40.0;
+
+  /// Small trailing action icons on a list row/tile (edit, delete, remove)
+  /// - see [AppIconButton].
+  static const double small = 28.0;
 }
 
 /// Text styles that embed [AppColors], so — like those — these are plain

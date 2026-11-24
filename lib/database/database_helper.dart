@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/module.dart';
+import '../models/project_task.dart';
 import '../models/user_model.dart';
 import '../models/note.dart';
 import '../theme/app_theme.dart';
@@ -16,6 +17,7 @@ class DatabaseHelper {
     Hive.registerAdapter(ModuleAdapter());
     Hive.registerAdapter(UserModelAdapter());
     Hive.registerAdapter(NoteAdapter());
+    Hive.registerAdapter(ProjectTaskAdapter());
     await Hive.openBox<Module>(_modulesBox);
     await Hive.openBox<UserModel>(_userBox);
     await Hive.openBox<Note>(_notesBox);
@@ -50,6 +52,9 @@ class DatabaseHelper {
   /// Submodules are just [Module]s whose parentId points at [parentId].
   static List<Module> getSubmodules(String parentId) =>
       _modules.values.where((m) => m.parentId == parentId).toList();
+
+  static List<Module> getProjects() =>
+      _modules.values.where((m) => m.isProject).toList();
 
   static Future<void> addModule(Module module) async {
     await _modules.add(module);
@@ -162,6 +167,11 @@ class DatabaseHelper {
                 'lastOpenedAt': m.lastOpenedAt?.toIso8601String(),
                 'iconName': m.iconName,
                 'description': m.description,
+                'isProject': m.isProject,
+                'status': m.status,
+                'repoUrl': m.repoUrl,
+                'deadline': m.deadline?.toIso8601String(),
+                'tasks': m.tasks.map((t) => {'title': t.title, 'done': t.done}).toList(),
               })
           .toList(),
       'notes': _notes.values
@@ -209,6 +219,18 @@ class DatabaseHelper {
             : null,
         iconName: map['iconName'] as String? ?? 'folder',
         description: map['description'] as String? ?? '',
+        isProject: map['isProject'] as bool? ?? false,
+        status: map['status'] as String? ?? 'in_progress',
+        repoUrl: map['repoUrl'] as String?,
+        deadline: map['deadline'] != null
+            ? DateTime.parse(map['deadline'] as String)
+            : null,
+        tasks: (map['tasks'] as List?)
+            ?.map((t) => ProjectTask(
+                  title: (t as Map)['title'] as String,
+                  done: t['done'] as bool? ?? false,
+                ))
+            .toList(),
       ));
     }
 
