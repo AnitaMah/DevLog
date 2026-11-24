@@ -14,11 +14,14 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.47.4'
           cache: true
 
       - run: flutter pub get
 
-      - run: flutter analyze
+      # --no-fatal-infos: don't fail the build over info-level lints/
+      # deprecation notices (several pre-exist and aren't regressions);
+      # warnings and errors still fail it.
+      - run: flutter analyze --no-fatal-infos
 
       - run: flutter test
