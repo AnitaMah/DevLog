@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +30,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late List<String> _tags;
   bool get _isEditing => widget.note != null;
 
+  // The persisted note backing this screen. Starts out as widget.note when
+  // editing, or null for a brand-new note until the first autosave (or an
+  // explicit save) creates it - after that, autosave and save both update
+  // this same record instead of creating duplicates.
+  Note? _note;
+
+  Timer? _autosaveTimer;
+  bool _autosaving = false;
+  static const _autosaveDelay = Duration(seconds: 2);
+
   // Snapshot of the last-saved (or initial) state, used to detect unsaved
   // changes when the user tries to leave the screen.
   late String _initialTitle;
@@ -54,12 +66,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   void initState() {
     super.initState();
+    _note = widget.note;
     _titleController = TextEditingController(text: widget.note?.title ?? '');
     _contentController = TextEditingController(text: widget.note?.content ?? '');
     _tags = List<String>.from(widget.note?.tags ?? []);
     _initialTitle = _titleController.text;
     _initialContent = _contentController.text;
     _initialTags = List<String>.from(_tags);
+    _titleController.addListener(_scheduleAutosave);
+    _contentController.addListener(_scheduleAutosave);
   }
 
   /// Pops the screen once the current frame has rebuilt with the updated
@@ -73,6 +88,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   void dispose() {
+    _autosaveTimer?.cancel();
     _titleController.dispose();
     _contentController.dispose();
     _tagController.dispose();
@@ -87,13 +103,59 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       }
       _tagController.clear();
     });
+    _scheduleAutosave();
   }
 
   void _removeTag(String tag) {
     setState(() => _tags.remove(tag));
+    _scheduleAutosave();
+  }
+
+  void _scheduleAutosave() {
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(_autosaveDelay, _autosave);
+  }
+
+  /// Writes the current title/content/tags to [_note], creating it first if
+  /// this is a still-unsaved new note.
+  Future<void> _persist({required String title, required String content}) async {
+    if (_note != null) {
+      await DatabaseHelper.updateNote(_note!, title: title, content: content, tags: _tags);
+    } else {
+      _note = await DatabaseHelper.addNote(widget.moduleId!, title: title, content: content, tags: _tags);
+    }
+  }
+
+  /// Silent debounced write - no navigation, no dialogs. Skipped while a
+  /// save/autosave is already in flight or if nothing has changed since the
+  /// last persisted state, so it never fights with an explicit save.
+  Future<void> _autosave() async {
+    if (!mounted || _autosaving) return;
+    final title = _titleController.text;
+    final content = _contentController.text;
+    if (title.trim().isEmpty && content.isEmpty && _tags.isEmpty) return;
+    if (title == _initialTitle && content == _initialContent && listEquals(_tags, _initialTags)) {
+      return;
+    }
+
+    _autosaving = true;
+    try {
+      final resolvedTitle = title.trim().isEmpty ? 'Untitled note' : title.trim();
+      await _persist(title: resolvedTitle, content: content);
+      if (!mounted) return;
+      setState(() {
+        _initialTitle = resolvedTitle;
+        _initialContent = content;
+        _initialTags = List<String>.from(_tags);
+      });
+    } finally {
+      _autosaving = false;
+    }
   }
 
   Future<void> _save() async {
+    _autosaveTimer?.cancel();
+
     // Commit any tag text still sitting in the input box (typed but never
     // confirmed with Enter) so saving doesn't silently drop it.
     final pendingTag = _tagController.text.trim();
@@ -107,11 +169,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         : _titleController.text.trim();
     final content = _contentController.text;
 
-    if (_isEditing) {
-      await DatabaseHelper.updateNote(widget.note!, title: title, content: content, tags: _tags);
-    } else {
-      await DatabaseHelper.addNote(widget.moduleId!, title: title, content: content, tags: _tags);
-    }
+    await _persist(title: title, content: content);
 
     if (!mounted) return;
     setState(() {
@@ -123,6 +181,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Future<void> _delete() async {
+    _autosaveTimer?.cancel();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -144,7 +203,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
 
     if (confirmed == true) {
-      await DatabaseHelper.deleteNote(widget.note!.id);
+      await DatabaseHelper.deleteNote(_note!.id);
       if (!mounted) return;
       setState(() => _bypassUnsavedGuard = true);
       _popWhenClean();
