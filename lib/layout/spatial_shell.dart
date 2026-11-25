@@ -1,3 +1,4 @@
+import 'dart:ui' as ui show Gradient;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -34,60 +35,53 @@ class _SpatialShellState extends State<SpatialShell> {
       children: [
         const Positioned.fill(child: RoomPassthrough()),
         Padding(
-          padding: const EdgeInsets.all(10),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1480),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                  ),
-                  boxShadow: AppColors.isDark
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            blurRadius: 100,
-                            offset: const Offset(0, 50),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(26),
-                  // No opaque fill of its own - [RoomPassthrough] shows
-                  // straight through everywhere the app doesn't cover with
-                  // its own (glass) surfaces, same as the mockup's
-                  // `.app`/`.content` having no background of their own.
-                  // (RoomPassthrough itself falls back to a flat
-                  // AppColors.background in light mode.)
-                  child: MouseRegion(
-                    onHover: (e) => _cursor.value = e.localPosition,
-                    onExit: (_) => _cursor.value = null,
-                    child: Stack(
+          padding: const EdgeInsets.all(4),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              boxShadow: AppColors.isDark
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        blurRadius: 100,
+                        offset: const Offset(0, 50),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(26),
+              // No opaque fill of its own - [RoomPassthrough] shows
+              // straight through everywhere the app doesn't cover with
+              // its own (glass) surfaces, same as the mockup's
+              // `.app`/`.content` having no background of their own.
+              // (RoomPassthrough itself falls back to a flat
+              // AppColors.background in light mode.)
+              child: MouseRegion(
+                onHover: (e) => _cursor.value = e.localPosition,
+                onExit: (_) => _cursor.value = null,
+                child: Stack(
+                  children: [
+                    // The mockup's `.liquid-light` - a soft white glow
+                    // that follows the cursor, sitting BEHIND the chrome
+                    // and content so the glass panels' own blur picks it
+                    // up (same z-order as `.liquid-light`'s z-index:0 vs.
+                    // `.window-chrome`/`.app`'s z-index:1).
+                    ValueListenableBuilder<Offset?>(
+                      valueListenable: _cursor,
+                      builder: (context, cursor, _) =>
+                          _LiquidLight(cursor: cursor),
+                    ),
+                    Column(
                       children: [
-                        // The mockup's `.liquid-light` - a soft white glow
-                        // that follows the cursor, sitting BEHIND the chrome
-                        // and content so the glass panels' own blur picks it
-                        // up (same z-order as `.liquid-light`'s z-index:0 vs.
-                        // `.window-chrome`/`.app`'s z-index:1).
-                        ValueListenableBuilder<Offset?>(
-                          valueListenable: _cursor,
-                          builder: (context, cursor, _) =>
-                              _LiquidLight(cursor: cursor),
-                        ),
-                        Column(
-                          children: [
-                            const _WindowChrome(),
-                            Expanded(child: widget.child),
-                            const _GestureBar(),
-                            const _WindowGrabBar(),
-                          ],
-                        ),
+                        const _WindowChrome(),
+                        Expanded(child: widget.child),
+                        const _GestureBar(),
+                        const _WindowGrabBar(),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -162,53 +156,56 @@ class RoomPassthrough extends StatelessWidget {
             ),
           ),
         ),
-        // Mirrors the mockup's three large `radial-gradient(...at x% y%,
-        // color, transparent N%)` washes on body::before - broad, soft
-        // ellipses, not tight glowing dots, so they actually read through
-        // the glass panels sitting on top of them.
-        _radialWash(
-          center: const Alignment(-0.7, -1.2),
-          color: const Color(0xFFFFD696),
-          alpha: 0.16,
-          radius: 1.3,
-        ),
-        _radialWash(
-          center: const Alignment(0.85, -1.0),
-          color: AppColors.accent,
-          alpha: 0.14,
-          radius: 1.1,
-        ),
-        _radialWash(
-          center: const Alignment(0.0, 1.3),
-          color: const Color(0xFF9C7850),
-          alpha: 0.22,
-          radius: 1.6,
+        // Mirrors the mockup's three `radial-gradient(900px 500px at 14%
+        // -10%, color, transparent 55%)`-style washes on body::before -
+        // CSS sizes those in FIXED pixels at a PERCENTAGE position, so they
+        // stay the same size regardless of window size (a maximized desktop
+        // window doesn't balloon them the way a widget-relative radius
+        // would). Painted directly so size and position follow that exact
+        // rule instead of scaling with the widget's own bounds.
+        const IgnorePointer(
+          child: CustomPaint(size: Size.infinite, painter: _RoomGlowPainter()),
         ),
       ],
     );
   }
+}
 
-  static Widget _radialWash({
-    required Alignment center,
-    required Color color,
-    required double alpha,
-    required double radius,
-  }) {
-    return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: center,
-            radius: radius,
-            colors: [
-              color.withValues(alpha: alpha),
-              color.withValues(alpha: 0),
-            ],
-          ),
-        ),
-      ),
-    );
+class _RoomGlowPainter extends CustomPainter {
+  const _RoomGlowPainter();
+
+  // (centerXPct, centerYPct, radiusXPx, radiusYPx, color, alpha, transparentAtFraction)
+  // CSS also applies `saturate(115%)` to the whole wash layer, making it
+  // read more vivid than the raw rgba alpha alone - compensated here with
+  // higher alpha and reach (more of the washes' bright core sits inside the
+  // window) rather than replicating the saturation filter itself.
+  static const _washes = [
+    (0.14, 0.05, 900.0, 650.0, Color(0xFFFFD696), 0.26, 0.6),
+    (0.92, 0.08, 700.0, 650.0, AppColors.accent, 0.2, 0.62),
+    (0.50, 0.95, 1000.0, 600.0, Color(0xFF9C7850), 0.3, 0.65),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final (cxPct, cyPct, rx, ry, color, alpha, stop) in _washes) {
+      final center = Offset(size.width * cxPct, size.height * cyPct);
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.scale(1.0, ry / rx);
+      final paint = Paint()
+        ..shader = ui.Gradient.radial(
+          Offset.zero,
+          rx,
+          [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
+          [0.0, stop],
+        );
+      canvas.drawCircle(Offset.zero, rx, paint);
+      canvas.restore();
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant _RoomGlowPainter oldDelegate) => false;
 }
 
 class _WindowChrome extends StatelessWidget {

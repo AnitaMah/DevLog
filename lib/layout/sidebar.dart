@@ -197,9 +197,13 @@ class _SearchButton extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.md),
       onTap: onTap,
+      hoverColor: AppColors.isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : Colors.black.withValues(alpha: 0.03),
       child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        // Sized by content + padding, matching the mockup's `.side-search`
+        // (no fixed height there) - noticeably shorter than a 44px nav row.
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           border: Border.all(color: AppColors.cardBorder),

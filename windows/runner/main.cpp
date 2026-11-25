@@ -25,8 +25,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
-  Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
+  // The spatial redesign is meant to fill the screen (its own window
+  // chrome/margin already reads as the "floating window"), so size to the
+  // monitor's work area at launch rather than a small fixed size.
+  // ShowWindow(SW_SHOWMAXIMIZED) right after Create() doesn't stick here -
+  // something in Flutter's own startup/DPI handling resizes the window back
+  // down shortly after - so this sizes it correctly up front instead.
+  RECT work_area;
+  ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
+  Win32Window::Point origin(work_area.left, work_area.top);
+  Win32Window::Size size(work_area.right - work_area.left,
+                         work_area.bottom - work_area.top);
   if (!window.Create(L"DevLog", origin, size)) {
     return EXIT_FAILURE;
   }

@@ -22,12 +22,20 @@ class DevLogApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'DevLog',
+          // The Terminal Dark / Spatial mockup has no visible scrollbar
+          // track/thumb anywhere - hide Flutter's default one everywhere
+          // rather than per-screen. Scrolling itself (wheel/trackpad/drag)
+          // is unaffected.
+          scrollBehavior: const _NoScrollbarBehavior(),
           theme: ThemeData(
             brightness: isDark ? Brightness.dark : Brightness.light,
             scaffoldBackgroundColor: AppColors.background,
             appBarTheme: AppBarTheme(
               backgroundColor: AppColors.sidebarBackground,
-              titleTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 20),
+              titleTextStyle: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+              ),
             ),
           ),
           home: const DashboardScreen(),
@@ -35,4 +43,15 @@ class DevLogApp extends StatelessWidget {
       },
     );
   }
+}
+
+class _NoScrollbarBehavior extends MaterialScrollBehavior {
+  const _NoScrollbarBehavior();
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) => child;
 }

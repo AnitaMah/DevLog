@@ -228,9 +228,14 @@ class _ModulesSection extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               // Mirrors the mockup's CSS `repeat(auto-fill, minmax(220px, 1fr))` -
               // columns are at least ~220px, however many fit the width.
+              // Aspect ratio matches the mockup's actual card content height
+              // (icon + title + meta line, ~125-135px) at that width - the
+              // mockup never sets a card height/aspect ratio explicitly, it
+              // just sizes to content, which comes out much wider/shorter
+              // than square.
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 260,
-                childAspectRatio: 1.15,
+                childAspectRatio: 1.95,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
