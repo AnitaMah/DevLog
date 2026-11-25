@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dev_log/components/app_icon_button.dart';
 import 'package:dev_log/database/database_helper.dart';
+import 'package:dev_log/layout/spatial_shell.dart';
 import 'package:dev_log/models/note.dart';
 import 'package:dev_log/theme/app_theme.dart';
 
@@ -57,6 +60,20 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   // this same record instead of creating duplicates.
   Note? _note;
 
+  // Which module this note belongs (or will belong) to. Changing it via the
+  // module dropdown persists immediately for an existing note, or is simply
+  // carried into the first save for a brand-new one.
+  late String _moduleId;
+
+  // Set whenever a save/autosave actually writes to Hive, so the editor can
+  // show "saved at HH:mm:ss" next to the toolbar.
+  DateTime? _lastSavedAt;
+
+  // A draft found on open that differs from the persisted note - shown as an
+  // inline recovery banner rather than a blocking dialog. Null once
+  // resolved (recovered or discarded) or when there was nothing to recover.
+  Map<String, dynamic>? _pendingDraft;
+
   Timer? _autosaveTimer;
   bool _autosaving = false;
   static const _autosaveDelay = Duration(seconds: 2);
@@ -109,6 +126,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void initState() {
     super.initState();
     _note = widget.note;
+    _moduleId = widget.note?.moduleId ?? widget.moduleId!;
     _titleController = TextEditingController(text: widget.note?.title ?? '');
     _contentController = TextEditingController(text: widget.note?.content ?? '');
     _tags = List<String>.from(widget.note?.tags ?? []);
@@ -212,41 +230,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     }
 
     if (!mounted) return;
-    final recover = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.sidebarBackground,
-        title: Text("Recover unsaved draft?", style: TextStyle(color: AppColors.textPrimary)),
-        content: Text(
-          "This note has edits from a session that didn't close cleanly. Recover them?",
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Discard", style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Recover"),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
+    setState(() => _pendingDraft = {'title': draft['title'], 'content': draft['content'], 'tags': draftTags});
+  }
 
-    if (recover == true) {
-      setState(() {
-        _titleController.text = draft['title'] as String;
-        _contentController.text = draft['content'] as String;
-        _tags = draftTags;
-        _lastCheckpoint = _snapshotNow();
-      });
-      _scheduleAutosave();
-    } else {
-      await DatabaseHelper.clearDraft(note.id);
-    }
+  void _recoverDraft() {
+    final draft = _pendingDraft!;
+    setState(() {
+      _titleController.text = draft['title'] as String;
+      _contentController.text = draft['content'] as String;
+      _tags = List<String>.from(draft['tags'] as List<String>);
+      _lastCheckpoint = _snapshotNow();
+      _pendingDraft = null;
+    });
+    _scheduleAutosave();
+  }
+
+  void _discardDraft() {
+    setState(() => _pendingDraft = null);
+    DatabaseHelper.clearDraft(widget.note!.id);
   }
 
   _EditorSnapshot _snapshotNow() =>
@@ -304,9 +305,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   /// this is a still-unsaved new note.
   Future<void> _persist({required String title, required String content}) async {
     if (_note != null) {
-      await DatabaseHelper.updateNote(_note!, title: title, content: content, tags: _tags);
+      await DatabaseHelper.updateNote(_note!,
+          title: title, content: content, tags: _tags, moduleId: _moduleId);
     } else {
-      _note = await DatabaseHelper.addNote(widget.moduleId!, title: title, content: content, tags: _tags);
+      _note = await DatabaseHelper.addNote(_moduleId, title: title, content: content, tags: _tags);
+    }
+    _lastSavedAt = DateTime.now();
+  }
+
+  /// Moves this note to a different module. For an existing note this
+  /// persists immediately (independent of the autosave/undo machinery,
+  /// since reassignment isn't something you'd want to "undo" mid-typing);
+  /// for a brand-new note it just updates where the first save will land.
+  Future<void> _changeModule(String moduleId) async {
+    if (moduleId == _moduleId) return;
+    setState(() => _moduleId = moduleId);
+    if (_note != null) {
+      await DatabaseHelper.updateNote(_note!, moduleId: moduleId);
+      if (mounted) setState(() => _lastSavedAt = DateTime.now());
     }
   }
 
@@ -464,151 +480,261 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     );
   }
 
+  String get _titleSlug {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) return _isEditing ? 'untitled' : 'new-note';
+    return title.toLowerCase().replaceAll(RegExp(r'\s+'), '-');
+  }
+
+  String _formatTime(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')}';
+
+  /// Wraps the current text-field selection in [token] on both sides (e.g.
+  /// `**` for bold), moving the cursor to keep the same text selected -
+  /// Markdown-style formatting shortcuts, since the content field is plain
+  /// text rather than rich text.
+  void _wrapSelection(String token) {
+    final selection = _contentController.selection;
+    if (!selection.isValid) return;
+    final text = _contentController.text;
+    final start = selection.start;
+    final end = selection.end;
+    final selected = text.substring(start, end);
+    _contentController.value = TextEditingValue(
+      text: '${text.substring(0, start)}$token$selected$token${text.substring(end)}',
+      selection: TextSelection(
+        baseOffset: start + token.length,
+        extentOffset: start + token.length + selected.length,
+      ),
+    );
+  }
+
   Widget _buildScaffold() {
+    // Pushed via Navigator.push as its own full-screen route, so it sits
+    // outside DashboardScreen's SpatialShell - wrap here too, otherwise
+    // opening a note drops the floating-window chrome/room background the
+    // rest of the app has.
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.cardBackground,
-        title: Text(_isEditing ? "Edit Note" : "New Note"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.undo),
-            tooltip: 'Undo',
-            onPressed: _canUndo ? _undo : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.redo),
-            tooltip: 'Redo',
-            onPressed: _canRedo ? _redo : null,
-          ),
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _delete,
+      body: SpatialShell(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBreadcrumb(),
+                const SizedBox(height: AppSpacing.md),
+                if (_pendingDraft != null) ...[
+                  _buildDraftBanner(),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+                Expanded(child: _buildGlassPanel()),
+              ],
             ),
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _save,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBreadcrumb() {
+    return Row(
+      children: [
+        Text('~/notes', style: AppTextStyles.mono.copyWith(color: AppColors.accent)),
+        Text(' / ', style: AppTextStyles.mono),
+        Expanded(
+          child: Text(_titleSlug, style: AppTextStyles.mono, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDraftBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.amberBg,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, size: 18, color: AppColors.amber),
+          const SizedBox(width: AppSpacing.sm),
+          const Expanded(
+            child: Text(
+              'Recover unsaved draft?',
+              style: TextStyle(color: AppColors.amber, fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
+          TextButton(onPressed: _discardDraft, child: const Text('Discard')),
+          const SizedBox(width: AppSpacing.xs),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accent, foregroundColor: AppColors.accentOnColor),
+            onPressed: _recoverDraft,
+            child: const Text('Recover'),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _titleController,
-              undoController: _disabledFieldUndo,
-              autofocus: !_isEditing,
-              style: AppTextStyles.header,
-              decoration: InputDecoration(
-                hintText: "Note title",
-                hintStyle: TextStyle(color: AppColors.textDisabled),
-                border: InputBorder.none,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildTagEditor(),
-            const SizedBox(height: AppSpacing.md),
-            Divider(color: AppColors.divider),
-            const SizedBox(height: AppSpacing.md),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
+    );
+  }
+
+  Widget _buildGlassPanel() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: AppGlass.blurSigma, sigmaY: AppGlass.blurSigma),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: AppGlass.panelBackground,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppGlass.panelBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildToolbarRow(),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: _titleController,
                 undoController: _disabledFieldUndo,
-                style: AppTextStyles.body,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
+                autofocus: !_isEditing,
+                style: AppTextStyles.header,
                 decoration: InputDecoration(
-                  hintText: "Write your note here…",
+                  hintText: "Note title",
                   hintStyle: TextStyle(color: AppColors.textDisabled),
                   border: InputBorder.none,
                 ),
               ),
-            ),
+              const SizedBox(height: AppSpacing.md),
+              Divider(color: AppColors.divider),
+              const SizedBox(height: AppSpacing.md),
+              Expanded(
+                child: TextField(
+                  controller: _contentController,
+                  undoController: _disabledFieldUndo,
+                  style: AppTextStyles.body,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  decoration: InputDecoration(
+                    hintText: "Write your note here…",
+                    hintStyle: TextStyle(color: AppColors.textDisabled),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Divider(color: AppColors.divider),
+              const SizedBox(height: AppSpacing.sm),
+              _buildFooterRow(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarRow() {
+    return Row(
+      children: [
+        AppIconButton(icon: Icons.undo, onPressed: _canUndo ? _undo : null),
+        AppIconButton(icon: Icons.redo, onPressed: _canRedo ? _redo : null),
+        Container(
+          width: 1,
+          height: 18,
+          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          color: AppColors.divider,
+        ),
+        AppIconButton(icon: Icons.format_bold, onPressed: () => _wrapSelection('**')),
+        AppIconButton(icon: Icons.format_italic, onPressed: () => _wrapSelection('*')),
+        AppIconButton(icon: Icons.code, onPressed: () => _wrapSelection('`')),
+        const Spacer(),
+        if (_lastSavedAt != null) ...[
+          Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle)),
+          const SizedBox(width: AppSpacing.xs),
+          Text('saved at ${_formatTime(_lastSavedAt!)}', style: AppTextStyles.smallText),
+          const SizedBox(width: AppSpacing.md),
+        ],
+        if (_isEditing) AppIconButton(icon: Icons.delete_outline, onPressed: _delete),
+        const SizedBox(width: AppSpacing.xs),
+        AppIconButton(icon: Icons.check, color: AppColors.accent, onPressed: _save),
+      ],
+    );
+  }
+
+  Widget _buildFooterRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: _buildTagEditor()),
+        const SizedBox(width: AppSpacing.lg),
+        _buildModuleSelect(),
+      ],
+    );
+  }
+
+  Widget _buildModuleSelect() {
+    final modules = DatabaseHelper.getAllModules();
+    final currentIsKnown = modules.any((m) => m.id == _moduleId);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: currentIsKnown ? _moduleId : null,
+          hint: Text('Module', style: AppTextStyles.smallText),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          dropdownColor: AppColors.cardBackground,
+          icon: Icon(Icons.expand_more, size: 16, color: AppColors.textDisabled),
+          items: [
+            for (final module in modules) DropdownMenuItem(value: module.id, child: Text(module.title)),
           ],
+          onChanged: (value) {
+            if (value != null) _changeModule(value);
+          },
         ),
       ),
     );
   }
 
   Widget _buildTagEditor() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            for (final tag in _tags)
-              Chip(
-                label: Text(tag, style: TextStyle(color: AppColors.tagColorFor(tag), fontSize: 12)),
-                backgroundColor: AppColors.tagColorFor(tag).withValues(alpha: 0.15),
-                side: BorderSide(color: AppColors.tagColorFor(tag).withValues(alpha: 0.4)),
-                deleteIcon: Icon(Icons.close, size: 14, color: AppColors.tagColorFor(tag)),
-                onDeleted: () => _removeTag(tag),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            SizedBox(
-              width: 120,
-              child: TextField(
-                controller: _tagController,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                decoration: InputDecoration(
-                  hintText: "+ add tag",
-                  hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 12),
-                  isDense: true,
-                  border: InputBorder.none,
-                ),
-                onSubmitted: _addTag,
-              ),
+        for (final tag in _tags)
+          Chip(
+            label: Text(tag, style: TextStyle(color: AppColors.tagColorFor(tag), fontSize: 12)),
+            backgroundColor: AppColors.tagColorFor(tag).withValues(alpha: 0.15),
+            side: BorderSide(color: AppColors.tagColorFor(tag).withValues(alpha: 0.4)),
+            deleteIcon: Icon(Icons.close, size: 14, color: AppColors.tagColorFor(tag)),
+            onDeleted: () => _removeTag(tag),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        SizedBox(
+          width: 120,
+          child: TextField(
+            controller: _tagController,
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            decoration: InputDecoration(
+              hintText: "+ add tag",
+              hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 12),
+              isDense: true,
+              border: InputBorder.none,
             ),
-          ],
-        ),
-        ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _tagController,
-          builder: (context, value, _) {
-            final suggestions = _tagSuggestions(value.text);
-            if (suggestions.isEmpty) return const SizedBox.shrink();
-
-            return Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final suggestion in suggestions)
-                    ActionChip(
-                      label: Text(suggestion,
-                          style: TextStyle(color: AppColors.tagColorFor(suggestion), fontSize: 12)),
-                      backgroundColor: AppColors.tagColorFor(suggestion).withValues(alpha: 0.15),
-                      side: BorderSide(color: AppColors.tagColorFor(suggestion).withValues(alpha: 0.4)),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onPressed: () => _addTag(suggestion),
-                    ),
-                ],
-              ),
-            );
-          },
+            onSubmitted: _addTag,
+          ),
         ),
       ],
     );
-  }
-
-  /// Existing tags (across every note) starting with whatever's currently
-  /// typed into the tag box, excluding ones already on this note - so
-  /// typing "flu" offers "flutter" instead of letting it drift into a
-  /// near-duplicate like "Flutter" or "flutr".
-  List<String> _tagSuggestions(String input) {
-    final query = input.trim().toLowerCase();
-    if (query.isEmpty) return const [];
-    return DatabaseHelper.getAllTagsWithCounts()
-        .map((entry) => entry.key)
-        .where((tag) => tag != query && tag.toLowerCase().startsWith(query) && !_tags.contains(tag))
-        .take(5)
-        .toList();
   }
 }
