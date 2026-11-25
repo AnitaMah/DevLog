@@ -13,7 +13,7 @@ flutter pub run msix:create
 ```
 
 The app icon (`assets/icon/app_icon_256.png`) is the "DL" mark (teal
-rounded square, white "DL"), matching the in-app header logo. Every
+rounded square, dark-on-teal "DL"), matching the in-app header logo. Every
 per-platform icon (Windows `.ico`, macOS `AppIcon.appiconset`, Android
 `mipmap-*`, iOS `AppIcon.appiconset`, web `icons/`) was regenerated from
 the same source so they all agree.

@@ -33,9 +33,9 @@ flutter:
 # Windows packaging (MSIX installer). Build with:
 #   flutter pub get
 #   flutter pub run msix:create
-# logo_path is the app's actual icon (teal rounded square, white "DL",
-# matching the in-app header logo) - also reused by the Linux/macOS packaging
-# scripts under packaging/, so keep it at this shared path.
+# logo_path is the app's actual icon (teal rounded square, dark-on-teal
+# "DL", matching the in-app header logo) - also reused by the Linux/macOS
+# packaging scripts under packaging/, so keep it at this shared path.
 msix_config:
   display_name: DevLog
   publisher_display_name: Anita
