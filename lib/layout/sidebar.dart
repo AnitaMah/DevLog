@@ -194,37 +194,34 @@ class _SearchButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LiquidSheen(
+    return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            border: Border.all(color: AppColors.cardBorder),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.search, size: 16, color: AppColors.textDisabled),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: Text("Search notes", style: AppTextStyles.body)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.cardBorder),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  "Ctrl K",
-                  style: AppTextStyles.mono.copyWith(fontSize: 11),
-                ),
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          border: Border.all(color: AppColors.cardBorder),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, size: 16, color: AppColors.textDisabled),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: Text("Search notes", style: AppTextStyles.body)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.cardBorder),
+                borderRadius: BorderRadius.circular(6),
               ),
-            ],
-          ),
+              child: Text(
+                "Ctrl K",
+                style: AppTextStyles.mono.copyWith(fontSize: 11),
+              ),
+            ),
+          ],
         ),
       ),
     );

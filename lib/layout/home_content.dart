@@ -92,25 +92,22 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.xl),
-                LiquidSheen(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  child: ElevatedButton.icon(
-                    onPressed: () => createNoteFlow(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: AppColors.accentOnColor,
-                      minimumSize: const Size(0, 48),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                ElevatedButton.icon(
+                  onPressed: () => createNoteFlow(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.accentOnColor,
+                    minimumSize: const Size(0, 48),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
                     ),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text("New note"),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                    ),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w600),
                   ),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text("New note"),
                 ),
               ],
             ),
