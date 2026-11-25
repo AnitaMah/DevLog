@@ -7,6 +7,19 @@ import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/models/note.dart';
 import 'package:dev_log/theme/app_theme.dart';
 
+/// A point-in-time snapshot of the editor's title/content/tags, used by the
+/// undo/redo stack.
+class _EditorSnapshot {
+  final String title;
+  final String content;
+  final List<String> tags;
+
+  _EditorSnapshot(this.title, this.content, List<String> tags) : tags = List.unmodifiable(tags);
+}
+
+bool _snapshotsEqual(_EditorSnapshot a, _EditorSnapshot b) =>
+    a.title == b.title && a.content == b.content && listEquals(a.tags, b.tags);
+
 /// Create or edit a [Note].
 ///
 /// Pass [moduleId] to create a brand new note inside that module, or pass
@@ -30,6 +43,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late List<String> _tags;
   bool get _isEditing => widget.note != null;
 
+  // Fed nothing on purpose: TextField's own built-in Ctrl/Cmd+Z handling
+  // always consumes the keystroke before our screen-level CallbackShortcuts
+  // sees it, even when there's nothing for the field itself to undo. Giving
+  // each field this permanently-empty controller makes Flutter report that
+  // built-in undo/redo as disabled, so the key event falls through to our
+  // combined undo/redo stack below instead.
+  final UndoHistoryController _disabledFieldUndo = UndoHistoryController();
+
   // The persisted note backing this screen. Starts out as widget.note when
   // editing, or null for a brand-new note until the first autosave (or an
   // explicit save) creates it - after that, autosave and save both update
@@ -39,6 +60,20 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   Timer? _autosaveTimer;
   bool _autosaving = false;
   static const _autosaveDelay = Duration(seconds: 2);
+
+  // Undo/redo, scoped to this screen's lifetime (not persisted). Rapid
+  // keystrokes are grouped into one undo step by only recording a new
+  // checkpoint once typing has paused for [_checkpointDelay] - otherwise
+  // undo would revert one character at a time.
+  final List<_EditorSnapshot> _undoStack = [];
+  final List<_EditorSnapshot> _redoStack = [];
+  late _EditorSnapshot _lastCheckpoint;
+  Timer? _checkpointTimer;
+  bool _applyingHistory = false;
+  static const _checkpointDelay = Duration(milliseconds: 800);
+
+  bool get _canUndo => _undoStack.isNotEmpty;
+  bool get _canRedo => _redoStack.isNotEmpty;
 
   // Snapshot of the last-saved (or initial) state, used to detect unsaved
   // changes when the user tries to leave the screen.
@@ -73,8 +108,11 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     _initialTitle = _titleController.text;
     _initialContent = _contentController.text;
     _initialTags = List<String>.from(_tags);
+    _lastCheckpoint = _snapshotNow();
     _titleController.addListener(_scheduleAutosave);
+    _titleController.addListener(_scheduleCheckpoint);
     _contentController.addListener(_scheduleAutosave);
+    _contentController.addListener(_scheduleCheckpoint);
   }
 
   /// Pops the screen once the current frame has rebuilt with the updated
@@ -89,6 +127,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    _checkpointTimer?.cancel();
+    _disabledFieldUndo.dispose();
     _titleController.dispose();
     _contentController.dispose();
     _tagController.dispose();
@@ -104,16 +144,69 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       _tagController.clear();
     });
     _scheduleAutosave();
+    _scheduleCheckpoint();
   }
 
   void _removeTag(String tag) {
     setState(() => _tags.remove(tag));
     _scheduleAutosave();
+    _scheduleCheckpoint();
   }
 
   void _scheduleAutosave() {
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer(_autosaveDelay, _autosave);
+  }
+
+  _EditorSnapshot _snapshotNow() =>
+      _EditorSnapshot(_titleController.text, _contentController.text, _tags);
+
+  void _scheduleCheckpoint() {
+    if (_applyingHistory) return;
+    _checkpointTimer?.cancel();
+    _checkpointTimer = Timer(_checkpointDelay, _commitCheckpoint);
+  }
+
+  /// Records the gap between [_lastCheckpoint] and the current state as one
+  /// undo step, if anything actually changed.
+  void _commitCheckpoint() {
+    final current = _snapshotNow();
+    if (_snapshotsEqual(current, _lastCheckpoint)) return;
+    setState(() {
+      _undoStack.add(_lastCheckpoint);
+      _redoStack.clear();
+      _lastCheckpoint = current;
+    });
+  }
+
+  void _undo() {
+    _checkpointTimer?.cancel();
+    // Flush whatever was typed since the last checkpoint into its own step
+    // first, so undo always reverts exactly one coherent edit.
+    _commitCheckpoint();
+    if (_undoStack.isEmpty) return;
+    final target = _undoStack.removeLast();
+    _redoStack.add(_lastCheckpoint);
+    _applyHistory(target);
+  }
+
+  void _redo() {
+    if (_redoStack.isEmpty) return;
+    final target = _redoStack.removeLast();
+    _undoStack.add(_lastCheckpoint);
+    _applyHistory(target);
+  }
+
+  void _applyHistory(_EditorSnapshot snapshot) {
+    _applyingHistory = true;
+    setState(() {
+      _titleController.text = snapshot.title;
+      _contentController.text = snapshot.content;
+      _tags = List<String>.from(snapshot.tags);
+      _lastCheckpoint = snapshot;
+    });
+    _applyingHistory = false;
+    _scheduleAutosave();
   }
 
   /// Writes the current title/content/tags to [_note], creating it first if
@@ -244,6 +337,11 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       bindings: {
         LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS): _save,
         LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyS): _save,
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyZ): _undo,
+        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyZ): _undo,
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyY): _redo,
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.shift, LogicalKeyboardKey.keyZ): _redo,
+        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.shift, LogicalKeyboardKey.keyZ): _redo,
       },
       child: PopScope(
         canPop: !_hasUnsavedChanges,
@@ -278,6 +376,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         backgroundColor: AppColors.cardBackground,
         title: Text(_isEditing ? "Edit Note" : "New Note"),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.undo),
+            tooltip: 'Undo',
+            onPressed: _canUndo ? _undo : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.redo),
+            tooltip: 'Redo',
+            onPressed: _canRedo ? _redo : null,
+          ),
           if (_isEditing)
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -296,6 +404,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           children: [
             TextField(
               controller: _titleController,
+              undoController: _disabledFieldUndo,
               autofocus: !_isEditing,
               style: AppTextStyles.header,
               decoration: InputDecoration(
@@ -312,6 +421,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             Expanded(
               child: TextField(
                 controller: _contentController,
+                undoController: _disabledFieldUndo,
                 style: AppTextStyles.body,
                 maxLines: null,
                 expands: true,

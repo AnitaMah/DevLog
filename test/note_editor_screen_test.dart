@@ -96,4 +96,93 @@ void main() {
     expect(notes, hasLength(1));
     expect(notes.first.tags, contains('flutter'));
   });
+
+  group('undo/redo', () {
+    // These never tap save, so they never touch Hive and aren't affected by
+    // the hang tracked in issue #2.
+
+    testWidgets('rapid typing groups into one undo step', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: NoteEditorScreen(moduleId: 'm1'),
+      ));
+      await tester.pumpAndSettle();
+
+      final titleField = find.widgetWithText(TextField, 'Note title');
+      await tester.enterText(titleField, 'H');
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.enterText(titleField, 'He');
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.enterText(titleField, 'Hel');
+      // Past the 800ms checkpoint-grouping window - commits one step.
+      await tester.pump(const Duration(milliseconds: 900));
+
+      await tester.tap(find.byIcon(Icons.undo));
+      await tester.pump();
+
+      expect(tester.widget<TextField>(titleField).controller!.text, isEmpty);
+
+      await tester.tap(find.byIcon(Icons.redo));
+      await tester.pump();
+
+      expect(tester.widget<TextField>(titleField).controller!.text, 'Hel');
+
+      // Dispose the screen now, cancelling its pending autosave timer -
+      // otherwise it's still armed (real, 2s) when the test ends.
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('undo reverts a tag add, redo reapplies it', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: NoteEditorScreen(moduleId: 'm1'),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextField, '+ add tag'), 'flutter');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump(const Duration(milliseconds: 900));
+
+      expect(find.text('flutter'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.undo));
+      await tester.pump();
+      expect(find.text('flutter'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.redo));
+      await tester.pump();
+      expect(find.text('flutter'), findsOneWidget);
+
+      // Dispose the screen now, cancelling its pending autosave timer -
+      // otherwise it's still armed (real, 2s) when the test ends.
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('undo/redo buttons are disabled until there is history', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: NoteEditorScreen(moduleId: 'm1'),
+      ));
+      await tester.pumpAndSettle();
+
+      IconButton iconButton(IconData icon) =>
+          tester.widget<IconButton>(find.widgetWithIcon(IconButton, icon));
+
+      expect(iconButton(Icons.undo).onPressed, isNull);
+      expect(iconButton(Icons.redo).onPressed, isNull);
+
+      await tester.enterText(find.widgetWithText(TextField, 'Note title'), 'Hello');
+      await tester.pump(const Duration(milliseconds: 900));
+
+      expect(iconButton(Icons.undo).onPressed, isNotNull);
+      expect(iconButton(Icons.redo).onPressed, isNull);
+
+      await tester.tap(find.byIcon(Icons.undo));
+      await tester.pump();
+
+      expect(iconButton(Icons.undo).onPressed, isNull);
+      expect(iconButton(Icons.redo).onPressed, isNotNull);
+
+      // Dispose the screen now, cancelling its pending autosave timer -
+      // otherwise it's still armed (real, 2s) when the test ends.
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
 }
