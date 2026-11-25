@@ -61,6 +61,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   bool _autosaving = false;
   static const _autosaveDelay = Duration(seconds: 2);
 
+  // A separate, more frequent write than autosave above, used only to
+  // recover from an unclean close (app/window killed outright, skipping
+  // this screen's own save-on-exit flow). Only tracked for existing notes -
+  // a brand-new note has nowhere to key a draft until it's saved once.
+  Timer? _draftTimer;
+  static const _draftDelay = Duration(milliseconds: 500);
+
   // Undo/redo, scoped to this screen's lifetime (not persisted). Rapid
   // keystrokes are grouped into one undo step by only recording a new
   // checkpoint once typing has paused for [_checkpointDelay] - otherwise
@@ -111,8 +118,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     _lastCheckpoint = _snapshotNow();
     _titleController.addListener(_scheduleAutosave);
     _titleController.addListener(_scheduleCheckpoint);
+    _titleController.addListener(_scheduleDraftSave);
     _contentController.addListener(_scheduleAutosave);
     _contentController.addListener(_scheduleCheckpoint);
+    _contentController.addListener(_scheduleDraftSave);
+
+    if (_isEditing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkForDraftToRecover());
+    }
   }
 
   /// Pops the screen once the current frame has rebuilt with the updated
@@ -128,6 +141,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void dispose() {
     _autosaveTimer?.cancel();
     _checkpointTimer?.cancel();
+    _draftTimer?.cancel();
     _disabledFieldUndo.dispose();
     _titleController.dispose();
     _contentController.dispose();
@@ -145,17 +159,94 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     });
     _scheduleAutosave();
     _scheduleCheckpoint();
+    _scheduleDraftSave();
   }
 
   void _removeTag(String tag) {
     setState(() => _tags.remove(tag));
     _scheduleAutosave();
     _scheduleCheckpoint();
+    _scheduleDraftSave();
   }
 
   void _scheduleAutosave() {
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer(_autosaveDelay, _autosave);
+  }
+
+  void _scheduleDraftSave() {
+    if (!_isEditing) return;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(_draftDelay, _saveDraft);
+  }
+
+  /// Writes the live edit state to the draft box, ahead of autosave's
+  /// slower 2s cadence, so it survives an unclean close that autosave
+  /// doesn't catch in time. Dropped once the state matches what's already
+  /// persisted - at that point there's nothing left to recover.
+  Future<void> _saveDraft() async {
+    if (!mounted) return;
+    final title = _titleController.text;
+    final content = _contentController.text;
+    if (title == _initialTitle && content == _initialContent && listEquals(_tags, _initialTags)) {
+      await DatabaseHelper.clearDraft(widget.note!.id);
+      return;
+    }
+    await DatabaseHelper.saveDraft(widget.note!.id, title: title, content: content, tags: _tags);
+  }
+
+  /// Checks for a draft left behind by a session that didn't close cleanly,
+  /// and offers to restore it over the currently-loaded (persisted) note.
+  Future<void> _checkForDraftToRecover() async {
+    final note = widget.note!;
+    final draft = DatabaseHelper.getDraft(note.id);
+    if (draft == null) return;
+
+    final draftTags = List<String>.from(draft['tags'] as List? ?? const []);
+    final matchesPersisted = draft['title'] == note.title &&
+        draft['content'] == note.content &&
+        listEquals(draftTags, note.tags);
+    if (matchesPersisted) {
+      await DatabaseHelper.clearDraft(note.id);
+      return;
+    }
+
+    if (!mounted) return;
+    final recover = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.sidebarBackground,
+        title: Text("Recover unsaved draft?", style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          "This note has edits from a session that didn't close cleanly. Recover them?",
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Discard", style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Recover"),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+
+    if (recover == true) {
+      setState(() {
+        _titleController.text = draft['title'] as String;
+        _contentController.text = draft['content'] as String;
+        _tags = draftTags;
+        _lastCheckpoint = _snapshotNow();
+      });
+      _scheduleAutosave();
+    } else {
+      await DatabaseHelper.clearDraft(note.id);
+    }
   }
 
   _EditorSnapshot _snapshotNow() =>
@@ -235,6 +326,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     try {
       final resolvedTitle = title.trim().isEmpty ? 'Untitled note' : title.trim();
       await _persist(title: resolvedTitle, content: content);
+      if (_isEditing) await DatabaseHelper.clearDraft(widget.note!.id);
       if (!mounted) return;
       setState(() {
         _initialTitle = resolvedTitle;
@@ -248,6 +340,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   Future<void> _save() async {
     _autosaveTimer?.cancel();
+    _draftTimer?.cancel();
 
     // Commit any tag text still sitting in the input box (typed but never
     // confirmed with Enter) so saving doesn't silently drop it.
@@ -263,6 +356,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final content = _contentController.text;
 
     await _persist(title: title, content: content);
+    if (_isEditing) await DatabaseHelper.clearDraft(widget.note!.id);
 
     if (!mounted) return;
     setState(() {
@@ -352,6 +446,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           if (choice == 'save') {
             await _save();
           } else if (choice == 'discard') {
+            if (_isEditing) await DatabaseHelper.clearDraft(widget.note!.id);
             setState(() => _bypassUnsavedGuard = true);
             _popWhenClean();
           }
@@ -440,35 +535,80 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Widget _buildTagEditor() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final tag in _tags)
-          Chip(
-            label: Text(tag, style: TextStyle(color: AppColors.tagColorFor(tag), fontSize: 12)),
-            backgroundColor: AppColors.tagColorFor(tag).withValues(alpha: 0.15),
-            side: BorderSide(color: AppColors.tagColorFor(tag).withValues(alpha: 0.4)),
-            deleteIcon: Icon(Icons.close, size: 14, color: AppColors.tagColorFor(tag)),
-            onDeleted: () => _removeTag(tag),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        SizedBox(
-          width: 120,
-          child: TextField(
-            controller: _tagController,
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-            decoration: InputDecoration(
-              hintText: "+ add tag",
-              hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 12),
-              isDense: true,
-              border: InputBorder.none,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final tag in _tags)
+              Chip(
+                label: Text(tag, style: TextStyle(color: AppColors.tagColorFor(tag), fontSize: 12)),
+                backgroundColor: AppColors.tagColorFor(tag).withValues(alpha: 0.15),
+                side: BorderSide(color: AppColors.tagColorFor(tag).withValues(alpha: 0.4)),
+                deleteIcon: Icon(Icons.close, size: 14, color: AppColors.tagColorFor(tag)),
+                onDeleted: () => _removeTag(tag),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            SizedBox(
+              width: 120,
+              child: TextField(
+                controller: _tagController,
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: "+ add tag",
+                  hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 12),
+                  isDense: true,
+                  border: InputBorder.none,
+                ),
+                onSubmitted: _addTag,
+              ),
             ),
-            onSubmitted: _addTag,
-          ),
+          ],
+        ),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _tagController,
+          builder: (context, value, _) {
+            final suggestions = _tagSuggestions(value.text);
+            if (suggestions.isEmpty) return const SizedBox.shrink();
+
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final suggestion in suggestions)
+                    ActionChip(
+                      label: Text(suggestion,
+                          style: TextStyle(color: AppColors.tagColorFor(suggestion), fontSize: 12)),
+                      backgroundColor: AppColors.tagColorFor(suggestion).withValues(alpha: 0.15),
+                      side: BorderSide(color: AppColors.tagColorFor(suggestion).withValues(alpha: 0.4)),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      onPressed: () => _addTag(suggestion),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ],
     );
+  }
+
+  /// Existing tags (across every note) starting with whatever's currently
+  /// typed into the tag box, excluding ones already on this note - so
+  /// typing "flu" offers "flutter" instead of letting it drift into a
+  /// near-duplicate like "Flutter" or "flutr".
+  List<String> _tagSuggestions(String input) {
+    final query = input.trim().toLowerCase();
+    if (query.isEmpty) return const [];
+    return DatabaseHelper.getAllTagsWithCounts()
+        .map((entry) => entry.key)
+        .where((tag) => tag != query && tag.toLowerCase().startsWith(query) && !_tags.contains(tag))
+        .take(5)
+        .toList();
   }
 }

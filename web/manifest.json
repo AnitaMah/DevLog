@@ -1,6 +1,6 @@
 {
-    "name": "42 Guides",
-    "short_name": "42 Guides",
+    "name": "DevLog",
+    "short_name": "DevLog",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

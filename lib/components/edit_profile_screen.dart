@@ -96,7 +96,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ElevatedButton(
               onPressed: _saveProfile,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accentPurple,
+                backgroundColor: AppColors.accent,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -104,7 +104,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               child: const Text(
                 "Save Changes",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.accentOnColor),
               ),
             ),
           ],

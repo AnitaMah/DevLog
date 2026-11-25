@@ -23,11 +23,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _exportData() async {
     final json = DatabaseHelper.exportDataAsJson();
     final defaultName =
-        '42guides-export-${DateTime.now().toIso8601String().split('T').first}.json';
+        'devlog-export-${DateTime.now().toIso8601String().split('T').first}.json';
 
     try {
       final path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Export 42 Guides data',
+        dialogTitle: 'Export DevLog data',
         fileName: defaultName,
         type: FileType.custom,
         allowedExtensions: ['json'],
@@ -43,7 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _importData() async {
     final result = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Import 42 Guides data',
+      dialogTitle: 'Import DevLog data',
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
@@ -79,7 +79,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await DatabaseHelper.importDataFromJson(contents);
       _showMessage('Import complete.');
     } catch (e) {
-      _showMessage('Import failed: not a valid 42 Guides export file.');
+      _showMessage('Import failed: not a valid DevLog export file.');
+    }
+  }
+
+  Future<void> _createBackup() async {
+    final json = DatabaseHelper.exportBackupAsJson();
+    final defaultName =
+        'devlog-backup-${DateTime.now().toIso8601String().split('T').first}.json';
+
+    try {
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save DevLog backup',
+        fileName: defaultName,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (path == null) return; // user cancelled
+
+      await File(path).writeAsString(json);
+      _showMessage('Backup saved to $path');
+    } catch (e) {
+      _showMessage('Backup failed: $e');
+    }
+  }
+
+  Future<void> _restoreBackup() async {
+    final result = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Select a DevLog backup',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    final path = result?.files.single.path;
+    if (path == null) return; // user cancelled
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.sidebarBackground,
+        title: Text("Restore backup?", style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          "This replaces every module, note, and your profile/theme with "
+          "the contents of the selected backup. This can't be undone.",
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Restore", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final contents = await File(path).readAsString();
+      await DatabaseHelper.restoreBackupFromJson(contents);
+      if (mounted) setState(() {}); // picks up a restored dark-mode preference
+      _showMessage('Restore complete.');
+    } catch (e) {
+      _showMessage('Restore failed: not a valid DevLog backup file.');
     }
   }
 
@@ -134,7 +199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: "Dark mode",
             trailing: Switch(
               value: AppColors.isDark,
-              activeColor: AppColors.accentPurple,
+              activeColor: AppColors.accent,
               onChanged: (value) {
                 setState(() {
                   AppColors.setDark(value);
@@ -181,6 +246,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _importData,
           ),
           _SettingsTile(
+            icon: Icons.backup_outlined,
+            title: "Backup",
+            trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled),
+            onTap: _createBackup,
+          ),
+          _SettingsTile(
+            icon: Icons.restore_outlined,
+            title: "Restore",
+            trailing: Icon(Icons.chevron_right, color: AppColors.textDisabled),
+            onTap: _restoreBackup,
+          ),
+          _SettingsTile(
             icon: Icons.delete_outline,
             title: "Clear all data",
             titleColor: Colors.red,
@@ -188,7 +265,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: AppSpacing.xl),
           _SectionHeader("About"),
-          _SettingsTile(icon: Icons.info_outline, title: "42 Guides — version 1.0.0"),
+          _SettingsTile(icon: Icons.info_outline, title: "DevLog — version 1.0.0"),
         ],
       ),
     );

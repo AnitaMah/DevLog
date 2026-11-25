@@ -29,6 +29,7 @@ void main() {
     await Hive.openBox<Module>('modules');
     await Hive.openBox<UserModel>('userBox');
     await Hive.openBox<Note>('notes');
+    await Hive.openBox('noteDrafts');
 
     await DatabaseHelper.addModule(Module(id: 'm1', title: 'Test Module'));
   });
@@ -95,6 +96,69 @@ void main() {
     final notes = DatabaseHelper.getAllNotes();
     expect(notes, hasLength(1));
     expect(notes.first.tags, contains('flutter'));
+  });
+
+  group('draft recovery', () {
+    // The note (and its draft) are created here in setUp - plain async, not
+    // inside testWidgets - to dodge the Hive-write hang tracked in issue #2.
+    late Note noteWithDifferingDraft;
+    late Note noteWithNoDraft;
+    late Note noteWithMatchingDraft;
+
+    setUp(() async {
+      noteWithDifferingDraft =
+          await DatabaseHelper.addNote('m1', title: 'Saved title', content: 'saved body');
+      await DatabaseHelper.saveDraft(noteWithDifferingDraft.id,
+          title: 'Draft title', content: 'draft body', tags: const []);
+
+      noteWithNoDraft = await DatabaseHelper.addNote('m1', title: 'No draft', content: 'body');
+
+      noteWithMatchingDraft = await DatabaseHelper.addNote('m1', title: 'Same', content: 'same body');
+      await DatabaseHelper.saveDraft(noteWithMatchingDraft.id,
+          title: 'Same', content: 'same body', tags: const []);
+    });
+
+    testWidgets('prompts to recover a draft that differs from the saved note',
+        (tester) async {
+      await tester.pumpWidget(MaterialApp(home: NoteEditorScreen(note: noteWithDifferingDraft)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recover unsaved draft?'), findsOneWidget);
+
+      await tester.tap(find.text('Recover'));
+      await tester.pumpAndSettle();
+
+      expect(
+          tester
+              .widget<TextField>(find.widgetWithText(TextField, 'Draft title'))
+              .controller!
+              .text,
+          'Draft title');
+      expect(find.text('draft body'), findsOneWidget);
+
+      // Dispose the screen now, cancelling the autosave timer the recovery
+      // flow armed - otherwise it's still pending (real, 2s) when the test ends.
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('does not prompt when there is no draft', (tester) async {
+      await tester.pumpWidget(MaterialApp(home: NoteEditorScreen(note: noteWithNoDraft)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recover unsaved draft?'), findsNothing);
+    });
+
+    // Skipped: this path clears the stale draft via a Hive write fired from
+    // a postFrameCallback during the widget's lifecycle, which hangs on this
+    // Flutter/Hive combo inside testWidgets - see
+    // https://github.com/AnitaMah/DevLog/issues/2
+    testWidgets('does not prompt when the draft matches the saved note',
+        skip: true, (tester) async {
+      await tester.pumpWidget(MaterialApp(home: NoteEditorScreen(note: noteWithMatchingDraft)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recover unsaved draft?'), findsNothing);
+    });
   });
 
   group('undo/redo', () {

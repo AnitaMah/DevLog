@@ -6,8 +6,10 @@ import 'package:dev_log/theme/app_theme.dart';
 import 'package:dev_log/components/module_input_dialog.dart';
 import 'package:dev_log/components/module_tile.dart';
 import 'package:dev_log/components/note_tile.dart';
+import 'package:dev_log/components/project_task_editor.dart';
 import 'package:dev_log/helpers/module_actions.dart';
 import 'package:dev_log/helpers/folder_import.dart';
+import 'package:dev_log/helpers/chat_import.dart';
 import 'package:dev_log/screens/note_editor_screen.dart';
 
 class ModuleDetailsScreen extends StatelessWidget {
@@ -70,7 +72,8 @@ class ModuleDetailsScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               FloatingActionButton.extended(
                 heroTag: "add_note",
-                backgroundColor: AppColors.accentPurple,
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.accentOnColor,
                 onPressed: () async {
                   await module.updateLastOpenedAt();
                   // Pass moduleId (not a pre-created note) so backing out
@@ -94,7 +97,7 @@ class ModuleDetailsScreen extends StatelessWidget {
               final notes = noteBox.values.where((n) => n.moduleId == module.id).toList()
                 ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
-              if (subModules.isEmpty && notes.isEmpty) {
+              if (subModules.isEmpty && notes.isEmpty && !module.isProject) {
                 return Center(
                   child: Text(
                     "Nothing here yet. Use the buttons below to add a note or a submodule.",
@@ -107,6 +110,9 @@ class ModuleDetailsScreen extends StatelessWidget {
               return ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
+                  if (module.isProject) ...[
+                    ProjectTaskEditor(module: module),
+                  ],
                   if (notes.isNotEmpty) ...[
                     Text("Notes", style: AppTextStyles.title),
                     const SizedBox(height: AppSpacing.md),
@@ -178,6 +184,21 @@ void _showImportMenu(BuildContext context, Module module) {
             onTap: () {
               Navigator.pop(sheetContext);
               importFiles(context, intoModule: module);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.smart_toy_outlined, color: AppColors.textSecondary),
+            title: Text(
+              "Import AI chat",
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            subtitle: Text(
+              "Add an exported Gemini, Gemini Notebook, or Claude conversation to \"${module.title}\"",
+              style: TextStyle(color: AppColors.textDisabled),
+            ),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              importAiChat(context, intoModule: module);
             },
           ),
           const SizedBox(height: AppSpacing.sm),

@@ -26,6 +26,12 @@ class Note extends HiveObject {
   @HiveField(6)
   final List<String> tags;
 
+  /// Which AI a chat-import note came from (an [AiSource.storageValue]), or
+  /// null for a regular note. Stored as a plain string rather than tying
+  /// the Hive schema to the AiSource enum, so the enum can change freely.
+  @HiveField(7)
+  String? aiSource;
+
   Note({
     required this.id,
     required this.moduleId,
@@ -34,11 +40,17 @@ class Note extends HiveObject {
     DateTime? createdAt,
     DateTime? updatedAt,
     List<String>? tags,
+    this.aiSource,
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now(),
         tags = tags ?? [];
 
-  Future<void> update({String? title, String? content, List<String>? tags}) async {
+  Future<void> update({
+    String? title,
+    String? content,
+    List<String>? tags,
+    String? aiSource,
+  }) async {
     if (title != null) this.title = title;
     if (content != null) this.content = content;
     if (tags != null) {
@@ -46,6 +58,7 @@ class Note extends HiveObject {
         ..clear()
         ..addAll(tags);
     }
+    if (aiSource != null) this.aiSource = aiSource;
     updatedAt = DateTime.now();
     await save();
   }

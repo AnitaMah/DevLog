@@ -29,13 +29,14 @@ class ModuleAdapter extends TypeAdapter<Module> {
       deadline: fields[10] as DateTime?,
       tasks:
           fields[11] == null ? [] : (fields[11] as List?)?.cast<ProjectTask>(),
+      updatedAt: fields[12] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Module obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -57,7 +58,9 @@ class ModuleAdapter extends TypeAdapter<Module> {
       ..writeByte(10)
       ..write(obj.deadline)
       ..writeByte(11)
-      ..write(obj.tasks);
+      ..write(obj.tasks)
+      ..writeByte(12)
+      ..write(obj.updatedAt);
   }
 
   @override

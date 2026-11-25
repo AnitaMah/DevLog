@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Builds a macOS .app and packages it into a .dmg for 42 Guides.
+# Builds a macOS .app and packages it into a .dmg for DevLog.
 #
 # Requires:
 #   - macOS with Xcode command line tools
@@ -19,9 +19,9 @@ set -euo pipefail
 #   ./packaging/macos/build_dmg.sh
 #
 # Output:
-#   build/macos/42 Guides.dmg
+#   build/macos/DevLog.dmg
 
-APP_DISPLAY_NAME="42 Guides"
+APP_DISPLAY_NAME="DevLog"
 BUILT_APP="build/macos/Build/Products/Release/dev_log.app"
 OUT_DIR="build/macos"
 DMG_PATH="${OUT_DIR}/${APP_DISPLAY_NAME}.dmg"

@@ -46,6 +46,13 @@ class Module extends HiveObject {
   @HiveField(11, defaultValue: <ProjectTask>[])
   List<ProjectTask> tasks;
 
+  /// When this module's own fields (title, description, status, tasks, ...)
+  /// were last changed - distinct from [lastOpenedAt], which tracks viewing
+  /// it. Null for modules saved before this field existed, or that have
+  /// never gone through [database_helper.DatabaseHelper.updateModule].
+  @HiveField(12)
+  DateTime? updatedAt;
+
   Module({
     required this.id,
     required this.title,
@@ -58,6 +65,7 @@ class Module extends HiveObject {
     this.repoUrl,
     this.deadline,
     List<ProjectTask>? tasks,
+    this.updatedAt,
   }) : tasks = tasks ?? [];
 
   /// Percentage of [tasks] marked done, or null when there are no tasks
@@ -75,4 +83,10 @@ class Module extends HiveObject {
     lastOpenedAt = DateTime.now();
     await save();
   }
+
+  /// When this module was last edited, for activity/recency purposes.
+  /// Falls back to the epoch for modules that have never been edited since
+  /// [updatedAt] started being tracked.
+  DateTime getUpdatedAt() =>
+      updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
 }

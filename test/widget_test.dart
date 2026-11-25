@@ -1,4 +1,4 @@
-// Basic smoke test for the DevLog / 42 Guides dashboard.
+// Basic smoke test for the DevLog dashboard.
 //
 // Sets up an isolated, temporary Hive database (so the test doesn't touch
 // real user data and doesn't need the path_provider plugin) and verifies
@@ -39,7 +39,7 @@ void main() {
     await tester.pumpWidget(const DevLogApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Guides'), findsOneWidget);
+    expect(find.text('DevLog'), findsOneWidget);
     expect(find.textContaining('Welcome back'), findsOneWidget);
   });
 }

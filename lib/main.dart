@@ -21,7 +21,7 @@ class DevLogApp extends StatelessWidget {
       builder: (context, isDark, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: '42 Guides',
+          title: 'DevLog',
           theme: ThemeData(
             brightness: isDark ? Brightness.dark : Brightness.light,
             scaffoldBackgroundColor: AppColors.background,

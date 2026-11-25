@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:hive_flutter/hive_flutter.dart';
+import '../helpers/id_generator.dart';
+import '../models/activity_item.dart';
 import '../models/module.dart';
 import '../models/project_task.dart';
 import '../models/user_model.dart';
@@ -11,6 +13,7 @@ class DatabaseHelper {
   static const String _modulesBox = 'modules';
   static const String _userBox = 'userBox';
   static const String _notesBox = 'notes';
+  static const String _noteDraftsBox = 'noteDrafts';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -21,6 +24,7 @@ class DatabaseHelper {
     await Hive.openBox<Module>(_modulesBox);
     await Hive.openBox<UserModel>(_userBox);
     await Hive.openBox<Note>(_notesBox);
+    await Hive.openBox(_noteDraftsBox);
 
     // Restore the saved light/dark preference, if any.
     if (_users.isNotEmpty) {
@@ -57,10 +61,15 @@ class DatabaseHelper {
       _modules.values.where((m) => m.isProject).toList();
 
   static Future<void> addModule(Module module) async {
+    // Counts module creation as activity too, same as a note's updatedAt
+    // being set at construction - without this a freshly created module
+    // would be invisible to getRecentActivity until its first edit.
+    module.updatedAt ??= DateTime.now();
     await _modules.add(module);
   }
 
   static Future<void> updateModule(Module module) async {
+    module.updatedAt = DateTime.now();
     await module.save();
   }
 
@@ -108,24 +117,27 @@ class DatabaseHelper {
     String title = 'Untitled note',
     String content = '',
     List<String>? tags,
+    String? aiSource,
   }) async {
     final note = Note(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: generateId(),
       moduleId: moduleId,
       title: title,
       content: content,
       tags: tags,
+      aiSource: aiSource,
     );
     await _notes.add(note);
     return note;
   }
 
   static Future<void> updateNote(Note note,
-      {String? title, String? content, List<String>? tags}) async {
-    await note.update(title: title, content: content, tags: tags);
+      {String? title, String? content, List<String>? tags, String? aiSource}) async {
+    await note.update(title: title, content: content, tags: tags, aiSource: aiSource);
   }
 
   static Future<void> deleteNote(String noteId) async {
+    await _noteDrafts.delete(noteId);
     for (final note in _notes.values) {
       if (note.id == noteId) {
         await note.delete();
@@ -152,6 +164,81 @@ class DatabaseHelper {
   static List<Note> getNotesByTag(String tag) =>
       _notes.values.where((n) => n.tags.contains(tag)).toList();
 
+  // --- Activity ---
+
+  /// The most recently changed notes and modules, newest first, for the
+  /// dashboard's activity feed. A note counts as activity from the moment
+  /// it's created (its `updatedAt` is always set); a module counts only
+  /// once it's actually been created or edited through [addModule] /
+  /// [updateModule] - one saved before [Module.updatedAt] existed, and
+  /// never touched since, has nothing to report and is left out rather
+  /// than sorted in at the epoch.
+  ///
+  /// [moduleId] restricts to that module's own activity plus notes inside
+  /// it; [tag] restricts to notes carrying that tag (modules have no tags,
+  /// so a [tag] filter always excludes module activity); [after]/[before]
+  /// bound the timestamp range (inclusive on both ends). Deliberately
+  /// plain [DateTime]s rather than a Flutter `DateTimeRange`, so this
+  /// stays a pure data-layer query with no UI-toolkit dependency.
+  static List<ActivityItem> getRecentActivity({
+    int limit = 20,
+    String? moduleId,
+    String? tag,
+    DateTime? after,
+    DateTime? before,
+  }) {
+    bool inRange(DateTime t) =>
+        (after == null || !t.isBefore(after)) && (before == null || !t.isAfter(before));
+
+    final items = <ActivityItem>[
+      for (final note in _notes.values)
+        if ((moduleId == null || note.moduleId == moduleId) &&
+            (tag == null || note.tags.contains(tag)) &&
+            inRange(note.updatedAt))
+          ActivityItem(
+            type: ActivityType.note,
+            id: note.id,
+            title: note.title,
+            moduleId: note.moduleId,
+            timestamp: note.updatedAt,
+          ),
+      for (final module in _modules.values)
+        if (module.updatedAt != null &&
+            tag == null &&
+            (moduleId == null || module.id == moduleId) &&
+            inRange(module.updatedAt!))
+          ActivityItem(
+            type: ActivityType.module,
+            id: module.id,
+            title: module.title,
+            moduleId: module.id,
+            timestamp: module.updatedAt!,
+          ),
+    ];
+    items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return items.take(limit).toList();
+  }
+
+  // --- Note drafts ---
+  //
+  // A separate, untyped box (plain maps, no HiveObject) holding in-progress
+  // edits for existing notes, keyed by note id. Written far more often than
+  // the note editor's own 2s autosave, so it catches edits made just before
+  // an unclean close (app/window killed outright, skipping the editor's
+  // normal save-on-exit flow) that autosave hasn't committed yet. Cleared as
+  // soon as a save or autosave makes the real Note match it again.
+  static Box get _noteDrafts => Hive.box(_noteDraftsBox);
+
+  static Map<String, dynamic>? getDraft(String noteId) =>
+      (_noteDrafts.get(noteId) as Map?)?.cast<String, dynamic>();
+
+  static Future<void> saveDraft(String noteId,
+      {required String title, required String content, required List<String> tags}) async {
+    await _noteDrafts.put(noteId, {'title': title, 'content': content, 'tags': tags});
+  }
+
+  static Future<void> clearDraft(String noteId) async => _noteDrafts.delete(noteId);
+
   // --- Export / Import ---
 
   /// A JSON-serializable snapshot of every module and note.
@@ -171,7 +258,14 @@ class DatabaseHelper {
                 'status': m.status,
                 'repoUrl': m.repoUrl,
                 'deadline': m.deadline?.toIso8601String(),
-                'tasks': m.tasks.map((t) => {'title': t.title, 'done': t.done}).toList(),
+                'updatedAt': m.updatedAt?.toIso8601String(),
+                'tasks': m.tasks
+                    .map((t) => {
+                          'title': t.title,
+                          'done': t.done,
+                          'dueDate': t.dueDate?.toIso8601String(),
+                        })
+                    .toList(),
               })
           .toList(),
       'notes': _notes.values
@@ -183,6 +277,7 @@ class DatabaseHelper {
                 'createdAt': n.createdAt.toIso8601String(),
                 'updatedAt': n.updatedAt.toIso8601String(),
                 'tags': n.tags,
+                'aiSource': n.aiSource,
               })
           .toList(),
     };
@@ -193,13 +288,13 @@ class DatabaseHelper {
 
   /// Replaces every module and note with the contents of a previously
   /// exported JSON string. Throws a [FormatException] if [jsonStr] doesn't
-  /// look like a 42 Guides export.
+  /// look like a DevLog export.
   static Future<void> importDataFromJson(String jsonStr) async {
     final decoded = jsonDecode(jsonStr);
     if (decoded is! Map<String, dynamic> ||
         decoded['modules'] is! List ||
         decoded['notes'] is! List) {
-      throw const FormatException('Not a valid 42 Guides export file.');
+      throw const FormatException('Not a valid DevLog export file.');
     }
 
     final modulesJson = decoded['modules'] as List;
@@ -225,10 +320,14 @@ class DatabaseHelper {
         deadline: map['deadline'] != null
             ? DateTime.parse(map['deadline'] as String)
             : null,
+        updatedAt: map['updatedAt'] != null
+            ? DateTime.parse(map['updatedAt'] as String)
+            : null,
         tasks: (map['tasks'] as List?)
             ?.map((t) => ProjectTask(
                   title: (t as Map)['title'] as String,
                   done: t['done'] as bool? ?? false,
+                  dueDate: t['dueDate'] != null ? DateTime.parse(t['dueDate'] as String) : null,
                 ))
             .toList(),
       ));
@@ -248,8 +347,61 @@ class DatabaseHelper {
             ? DateTime.parse(map['updatedAt'] as String)
             : null,
         tags: (map['tags'] as List?)?.map((t) => t.toString()).toList(),
+        aiSource: map['aiSource'] as String?,
       ));
     }
+  }
+
+  /// A full snapshot for backup/restore: everything [exportData] covers,
+  /// plus the user's profile and theme preference, which "Export data"
+  /// deliberately leaves out since that format is meant for sharing/moving
+  /// module content rather than restoring a whole device's state.
+  static Map<String, dynamic> exportBackupData() {
+    final data = exportData();
+    final user = _users.isNotEmpty ? _users.getAt(0) : null;
+    return {
+      ...data,
+      'user': user == null
+          ? null
+          : {
+              'name': user.name,
+              'email': user.email,
+              'avatarPath': user.avatarPath,
+              'isDarkMode': user.isDarkMode,
+            },
+    };
+  }
+
+  static String exportBackupAsJson() =>
+      const JsonEncoder.withIndent('  ').convert(exportBackupData());
+
+  /// Restores a full device snapshot produced by [exportBackupAsJson]:
+  /// every module and note (via [importDataFromJson]), plus the user's
+  /// profile and theme preference. Throws a [FormatException] if [jsonStr]
+  /// doesn't look like a DevLog backup.
+  static Future<void> restoreBackupFromJson(String jsonStr) async {
+    await importDataFromJson(jsonStr);
+
+    final userJson = (jsonDecode(jsonStr) as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
+    if (userJson == null) return;
+
+    final isDark = userJson['isDarkMode'] as bool? ?? true;
+    if (_users.isEmpty) {
+      await _users.add(UserModel(
+        name: userJson['name'] as String? ?? 'User',
+        email: userJson['email'] as String? ?? '',
+        avatarPath: userJson['avatarPath'] as String? ?? 'assets/images/default_avatar.png',
+        isDarkMode: isDark,
+      ));
+    } else {
+      final user = _users.getAt(0)!;
+      user.name = userJson['name'] as String? ?? user.name;
+      user.email = userJson['email'] as String? ?? user.email;
+      user.avatarPath = userJson['avatarPath'] as String? ?? user.avatarPath;
+      user.isDarkMode = isDark;
+      await user.save();
+    }
+    AppColors.setDark(isDark);
   }
 
   // --- Danger zone ---
@@ -259,5 +411,6 @@ class DatabaseHelper {
   static Future<void> clearAllData() async {
     await _modules.clear();
     await _notes.clear();
+    await _noteDrafts.clear();
   }
 }

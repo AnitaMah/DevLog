@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Builds a Linux AppImage for 42 Guides.
+# Builds a Linux AppImage for DevLog.
 #
 # Requires:
 #   - flutter (with linux desktop support enabled)
@@ -11,9 +11,9 @@ set -euo pipefail
 #   ./packaging/linux/build_appimage.sh
 #
 # Output:
-#   build/linux/42Guides-x86_64.AppImage
+#   build/linux/DevLog-x86_64.AppImage
 
-APP_NAME="42Guides"
+APP_NAME="DevLog"
 EXE_NAME="dev_log"
 BUNDLE_DIR="build/linux/x64/release/bundle"
 APPDIR="build/linux/${APP_NAME}.AppDir"
@@ -39,7 +39,7 @@ cp -r "$BUNDLE_DIR"/. "$APPDIR/usr/bin/"
 cat > "$APPDIR/usr/share/applications/${APP_NAME}.desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=42 Guides
+Name=DevLog
 Exec=${EXE_NAME}
 Icon=${APP_NAME}
 Categories=Utility;Education;
