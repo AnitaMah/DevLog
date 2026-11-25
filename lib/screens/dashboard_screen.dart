@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:dev_log/components/main_top_bar.dart' show createNoteFlow;
 import 'package:dev_log/layout/home_content.dart';
 import 'package:dev_log/layout/sidebar.dart';
+import 'package:dev_log/layout/spatial_shell.dart';
 import 'package:dev_log/screens/notes_screen.dart';
 import 'package:dev_log/screens/projects_screen.dart';
 import 'package:dev_log/screens/settings_screen.dart';
@@ -47,12 +48,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return CallbackShortcuts(
       bindings: {
-        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyN):
-            () => createNoteFlow(context),
-        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyN):
-            () => createNoteFlow(context),
-        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF): _focusNotesSearch,
-        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyF): _focusNotesSearch,
+        LogicalKeySet(
+          LogicalKeyboardKey.control,
+          LogicalKeyboardKey.keyN,
+        ): () =>
+            createNoteFlow(context),
+        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyN): () =>
+            createNoteFlow(context),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
+            _focusNotesSearch,
+        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyF):
+            _focusNotesSearch,
       },
       // CallbackShortcuts only fires when some descendant already holds
       // keyboard focus - without this, the bindings above are silently
@@ -61,27 +67,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
         autofocus: true,
         child: Scaffold(
           backgroundColor: AppColors.background,
-          body: SafeArea(
-            child: Row(
-              children: [
-                Sidebar(
-                  currentIndex: _currentIndex,
-                  onIndexSelected: (index) => setState(() => _currentIndex = index),
-                  onSearchTap: _focusNotesSearch,
-                ),
-                Expanded(
-                  child: IndexedStack(
-                    index: _currentIndex,
-                    children: [
-                      const HomeContent(),
-                      const ProjectsScreen(),
-                      NotesScreen(searchFocusNode: _notesSearchFocusNode),
-                      const TagsScreen(),
-                      const SettingsScreen(),
-                    ],
+          body: SpatialShell(
+            child: SafeArea(
+              child: Row(
+                children: [
+                  Sidebar(
+                    currentIndex: _currentIndex,
+                    onIndexSelected: (index) =>
+                        setState(() => _currentIndex = index),
+                    onSearchTap: _focusNotesSearch,
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: IndexedStack(
+                      index: _currentIndex,
+                      children: [
+                        const HomeContent(),
+                        const ProjectsScreen(),
+                        NotesScreen(searchFocusNode: _notesSearchFocusNode),
+                        const TagsScreen(),
+                        const SettingsScreen(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

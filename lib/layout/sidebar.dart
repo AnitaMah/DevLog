@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -36,110 +37,152 @@ class Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 240,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      decoration: BoxDecoration(
-        color: AppColors.sidebarBackground,
-        border: Border(right: BorderSide(color: AppColors.divider)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Text("DL", style: AppTextStyles.mono.copyWith(color: AppColors.accentOnColor, fontWeight: FontWeight.w500)),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Text("DevLog", style: AppTextStyles.sectionTitle.copyWith(letterSpacing: -0.2)),
-              ],
-            ),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: AppGlass.blurSigma,
+          sigmaY: AppGlass.blurSigma,
+        ),
+        child: Container(
+          width: 240,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          decoration: BoxDecoration(
+            color: AppGlass.panelBackground,
+            border: Border(right: BorderSide(color: AppColors.divider)),
           ),
-          const SizedBox(height: AppSpacing.xl),
-          _SearchButton(onTap: onSearchTap),
-          const SizedBox(height: AppSpacing.xl),
-          for (var i = 0; i < _navIcons.length; i++)
-            _NavItem(
-              icon: currentIndex == i ? _navIcons[i].$2 : _navIcons[i].$1,
-              label: _navIcons[i].$3,
-              selected: currentIndex == i,
-              onTap: () => onIndexSelected(i),
-            ),
-          const SizedBox(height: AppSpacing.xl),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text("MODULES",
-                      style: AppTextStyles.mono.copyWith(letterSpacing: 1.2, fontSize: 11)),
-                ),
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  onTap: () => showDialog(context: context, builder: (_) => const ModuleInputDialog()),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.cardBorder),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Text(
+                        "DL",
+                        style: AppTextStyles.mono.copyWith(
+                          color: AppColors.accentOnColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    child: Icon(Icons.add, size: 14, color: AppColors.textSecondary),
-                  ),
+                    const SizedBox(width: AppSpacing.md),
+                    Text(
+                      "DevLog",
+                      style: AppTextStyles.sectionTitle.copyWith(
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: Hive.box<Module>('modules').listenable(),
-              builder: (context, Box<Module> box, _) {
-                final modules = DatabaseHelper.getRootModules();
-                return ListView(
-                  padding: EdgeInsets.zero,
-                  children: modules
-                      .map((m) => _ModuleItem(
-                            module: m,
-                            onTap: () {
-                              m.updateLastOpenedAt();
-                              Navigator.push(context,
-                                  MaterialPageRoute(builder: (_) => ModuleDetailsScreen(module: m)));
-                            },
-                          ))
-                      .toList(),
-                );
-              },
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(top: AppSpacing.md),
-            padding: const EdgeInsets.only(top: AppSpacing.lg),
-            decoration: BoxDecoration(border: Border(top: BorderSide(color: AppColors.divider))),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              _SearchButton(onTap: onSearchTap),
+              const SizedBox(height: AppSpacing.xl),
+              for (var i = 0; i < _navIcons.length; i++)
                 _NavItem(
-                  icon: currentIndex == 4 ? Icons.settings : Icons.settings_outlined,
-                  label: "Settings",
-                  selected: currentIndex == 4,
-                  onTap: () => onIndexSelected(4),
+                  icon: currentIndex == i ? _navIcons[i].$2 : _navIcons[i].$1,
+                  label: _navIcons[i].$3,
+                  selected: currentIndex == i,
+                  onTap: () => onIndexSelected(i),
                 ),
-                const _SidebarFooterRow(),
-              ],
-            ),
+              const SizedBox(height: AppSpacing.xl),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "MODULES",
+                        style: AppTextStyles.mono.copyWith(
+                          letterSpacing: 1.2,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (_) => const ModuleInputDialog(),
+                      ),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.cardBorder),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Icon(
+                          Icons.add,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ValueListenableBuilder(
+                  valueListenable: Hive.box<Module>('modules').listenable(),
+                  builder: (context, Box<Module> box, _) {
+                    final modules = DatabaseHelper.getRootModules();
+                    return ListView(
+                      padding: EdgeInsets.zero,
+                      children: modules
+                          .map(
+                            (m) => _ModuleItem(
+                              module: m,
+                              onTap: () {
+                                m.updateLastOpenedAt();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ModuleDetailsScreen(module: m),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                          .toList(),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: AppSpacing.md),
+                padding: const EdgeInsets.only(top: AppSpacing.lg),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: AppColors.divider)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _NavItem(
+                      icon: currentIndex == 4
+                          ? Icons.settings
+                          : Icons.settings_outlined,
+                      label: "Settings",
+                      selected: currentIndex == 4,
+                      onTap: () => onIndexSelected(4),
+                    ),
+                    const _SidebarFooterRow(),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -151,31 +194,37 @@ class _SearchButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return LiquidSheen(
       borderRadius: BorderRadius.circular(AppRadius.md),
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          border: Border.all(color: AppColors.cardBorder),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.search, size: 16, color: AppColors.textDisabled),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(child: Text("Search notes", style: AppTextStyles.body)),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.cardBorder),
-                borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        onTap: onTap,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            border: Border.all(color: AppColors.cardBorder),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.search, size: 16, color: AppColors.textDisabled),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(child: Text("Search notes", style: AppTextStyles.body)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.cardBorder),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  "Ctrl K",
+                  style: AppTextStyles.mono.copyWith(fontSize: 11),
+                ),
               ),
-              child: Text("Ctrl K", style: AppTextStyles.mono.copyWith(fontSize: 11)),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -188,7 +237,12 @@ class _NavItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _NavItem({required this.icon, required this.label, required this.selected, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -204,12 +258,20 @@ class _NavItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: selected ? AppColors.accentMutedFg : AppColors.textSecondary),
+            Icon(
+              icon,
+              size: 18,
+              color: selected
+                  ? AppColors.accentMutedFg
+                  : AppColors.textSecondary,
+            ),
             const SizedBox(width: AppSpacing.md),
             Text(
               label,
               style: TextStyle(
-                color: selected ? AppColors.accentMutedFg : AppColors.textSecondary,
+                color: selected
+                    ? AppColors.accentMutedFg
+                    : AppColors.textSecondary,
                 fontSize: 15,
                 fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
               ),
@@ -237,12 +299,21 @@ class _ModuleItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: fg, borderRadius: BorderRadius.circular(2))),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: fg,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(module.title,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                  overflow: TextOverflow.ellipsis),
+              child: Text(
+                module.title,
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -261,8 +332,13 @@ class _SidebarFooterRow extends StatelessWidget {
       builder: (context, Box<UserModel> box, _) {
         final user = box.isNotEmpty
             ? box.getAt(0)!
-            : UserModel(name: "User", email: "", avatarPath: 'assets/images/default_avatar.png');
-        final hasCustomAvatar = user.avatarPath != 'assets/images/default_avatar.png';
+            : UserModel(
+                name: "User",
+                email: "",
+                avatarPath: 'assets/images/default_avatar.png',
+              );
+        final hasCustomAvatar =
+            user.avatarPath != 'assets/images/default_avatar.png';
         final file = File(user.avatarPath);
         final fileExists = hasCustomAvatar && file.existsSync();
 
@@ -274,7 +350,11 @@ class _SidebarFooterRow extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   onTap: () => Navigator.push(
-                      context, MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EditProfileScreen(),
+                    ),
+                  ),
                   child: Row(
                     children: [
                       CircleAvatar(
@@ -282,22 +362,38 @@ class _SidebarFooterRow extends StatelessWidget {
                         backgroundColor: AppColors.cardBackground,
                         backgroundImage: fileExists ? FileImage(file) : null,
                         child: !fileExists
-                            ? Text(user.name.isNotEmpty ? user.name[0].toUpperCase() : "?",
-                                style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600))
+                            ? Text(
+                                user.name.isNotEmpty
+                                    ? user.name[0].toUpperCase()
+                                    : "?",
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
                             : null,
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
-                        child: Text(user.name,
-                            style: TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
-                            overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          user.name,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
               AppIconButtonSquare(
-                icon: AppColors.isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                icon: AppColors.isDark
+                    ? Icons.dark_mode_outlined
+                    : Icons.light_mode_outlined,
                 onPressed: () {
                   AppColors.toggle();
                   DatabaseHelper.saveThemePreference(AppColors.isDark);
@@ -317,7 +413,11 @@ class _SidebarFooterRow extends StatelessWidget {
 class AppIconButtonSquare extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
-  const AppIconButtonSquare({super.key, required this.icon, required this.onPressed});
+  const AppIconButtonSquare({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
