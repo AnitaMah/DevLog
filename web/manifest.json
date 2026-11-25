@@ -3,9 +3,9 @@
     "short_name": "DevLog",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1BB2B3",
+    "theme_color": "#1BB2B3",
+    "description": "DevLog — a personal knowledge base for programming guides, your own projects, and imported AI chats.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
