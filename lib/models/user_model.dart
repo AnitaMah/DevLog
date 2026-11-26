@@ -13,7 +13,7 @@ class UserModel extends HiveObject {
   @HiveField(2)
   String avatarPath;
 
-  @HiveField(3)
+  @HiveField(3, defaultValue: true)
   bool isDarkMode;
 
   UserModel({

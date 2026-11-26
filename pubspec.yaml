@@ -1,5 +1,5 @@
 name: dev_log
-description: "42 Guides — a personal knowledge base for organizing programming notes by topic."
+description: "DevLog — a personal knowledge base for programming guides, your own projects, and imported AI chats."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -11,10 +11,15 @@ dependencies:
     sdk: flutter
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.2.4
   path_provider: ^2.1.0
   font_awesome_flutter: ^11.0.0
   image_picker: ^1.2.3
+  image: ^4.9.1
   file_picker: ^8.1.2
+  html: ^0.15.7
+  syncfusion_flutter_pdf: ^35.2.12
+  google_fonts: ^9.0.0
 
 dev_dependencies:
   flutter_test:
@@ -30,11 +35,11 @@ flutter:
 # Windows packaging (MSIX installer). Build with:
 #   flutter pub get
 #   flutter pub run msix:create
-# logo_path is the app's actual icon (purple square, white "42", matching
-# the in-app header logo) - also reused by the Linux/macOS packaging
-# scripts under packaging/, so keep it at this shared path.
+# logo_path is the app's actual icon (teal rounded square, dark-on-teal
+# "DL", matching the in-app header logo) - also reused by the Linux/macOS
+# packaging scripts under packaging/, so keep it at this shared path.
 msix_config:
-  display_name: 42 Guides
+  display_name: DevLog
   publisher_display_name: Anita
   identity_name: com.example.dev_log
   msix_version: 1.0.0.0

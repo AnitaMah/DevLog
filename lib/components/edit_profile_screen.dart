@@ -5,6 +5,8 @@ import 'package:dev_log/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'package:dev_log/helpers/image_sanitizer.dart';
+
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -42,9 +44,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickAvatar() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() => _selectedAvatar = File(pickedFile.path));
-    }
+    if (pickedFile == null) return;
+
+    final sanitizedPath = await sanitizeAndStoreImage(pickedFile.path);
+    setState(() => _selectedAvatar = File(sanitizedPath));
   }
 
   Future<void> _saveProfile() async {
@@ -96,7 +99,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ElevatedButton(
               onPressed: _saveProfile,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accentPurple,
+                backgroundColor: AppColors.accent,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -104,7 +107,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               child: const Text(
                 "Save Changes",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.accentOnColor),
               ),
             ),
           ],

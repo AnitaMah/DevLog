@@ -25,7 +25,7 @@ class ModulePickerDialog extends StatelessWidget {
             final isSubmodule = module.parentId != null;
             return ListTile(
               contentPadding: EdgeInsets.only(left: isSubmodule ? 32 : 16, right: 16),
-              leading: IconHelper.getFaIcon(module.iconName, size: 16, color: AppColors.accentPurple),
+              leading: IconHelper.getFaIcon(module.iconName, size: 16, color: AppColors.accent),
               title: Text(module.title, style: AppTextStyles.cardTitle),
               onTap: () => Navigator.pop(context, module),
             );

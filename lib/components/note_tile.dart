@@ -28,7 +28,7 @@ class NoteTile extends StatelessWidget {
           side: BorderSide(color: AppColors.cardBorder),
         ),
         child: ListTile(
-          leading: const Icon(Icons.description_outlined, color: AppColors.accentPurple, size: 20),
+          leading: const Icon(Icons.description_outlined, color: AppColors.accent, size: 20),
           title: Text(note.title, style: AppTextStyles.cardTitle),
           subtitle: Text(
             _preview(note.content),

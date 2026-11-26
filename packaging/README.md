@@ -1,4 +1,4 @@
-# Packaging 42 Guides for distribution
+# Packaging DevLog for distribution
 
 Scripts and config for producing installable builds on each desktop platform.
 None of these are run automatically — build them locally on the matching OS.
@@ -12,8 +12,11 @@ flutter pub get
 flutter pub run msix:create
 ```
 
-The app icon (`assets/icon/app_icon_256.png`) is the real "42 Guides" mark
-(purple square, white "42"), matching the in-app header logo.
+The app icon (`assets/icon/app_icon_256.png`) is the "DL" mark (teal
+rounded square, dark-on-teal "DL"), matching the in-app header logo. Every
+per-platform icon (Windows `.ico`, macOS `AppIcon.appiconset`, Android
+`mipmap-*`, iOS `AppIcon.appiconset`, web `icons/`) was regenerated from
+the same source so they all agree.
 
 ## Linux — AppImage
 
@@ -22,7 +25,7 @@ The app icon (`assets/icon/app_icon_256.png`) is the real "42 Guides" mark
 ```
 
 Requires `appimagetool` on PATH. Produces
-`build/linux/42Guides-x86_64.AppImage`.
+`build/linux/DevLog-x86_64.AppImage`.
 
 ## macOS — DMG
 
@@ -31,7 +34,7 @@ Requires `appimagetool` on PATH. Produces
 ```
 
 Requires `create-dmg` (`brew install create-dmg`), and must run on macOS
-with Xcode command line tools installed. Produces `build/macos/42 Guides.dmg`.
+with Xcode command line tools installed. Produces `build/macos/DevLog.dmg`.
 
 This build is **unsigned and not notarized** — Gatekeeper will block it on
 other Macs unless the user right-clicks → Open. Proper distribution needs

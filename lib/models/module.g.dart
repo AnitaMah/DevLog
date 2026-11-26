@@ -23,13 +23,20 @@ class ModuleAdapter extends TypeAdapter<Module> {
       lastOpenedAt: fields[4] as DateTime?,
       iconName: fields[5] as String,
       description: fields[6] as String,
+      isProject: fields[7] == null ? false : fields[7] as bool,
+      status: fields[8] == null ? 'in_progress' : fields[8] as String,
+      repoUrl: fields[9] as String?,
+      deadline: fields[10] as DateTime?,
+      tasks:
+          fields[11] == null ? [] : (fields[11] as List?)?.cast<ProjectTask>(),
+      updatedAt: fields[12] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Module obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +48,19 @@ class ModuleAdapter extends TypeAdapter<Module> {
       ..writeByte(5)
       ..write(obj.iconName)
       ..writeByte(6)
-      ..write(obj.description);
+      ..write(obj.description)
+      ..writeByte(7)
+      ..write(obj.isProject)
+      ..writeByte(8)
+      ..write(obj.status)
+      ..writeByte(9)
+      ..write(obj.repoUrl)
+      ..writeByte(10)
+      ..write(obj.deadline)
+      ..writeByte(11)
+      ..write(obj.tasks)
+      ..writeByte(12)
+      ..write(obj.updatedAt);
   }
 
   @override
