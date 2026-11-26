@@ -22,3 +22,12 @@ String projectStatusLabel(String status) => projectStatusLabels[status] ?? statu
 
 Color projectStatusColor(String status) =>
     projectStatusColors[status] ?? projectStatusColors['in_progress']!;
+
+const _monthAbbrev = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// "Dec 15" - short form used wherever a project [Module.deadline] is shown
+/// next to other compact metadata (task counts, status labels).
+String formatDeadline(DateTime date) => '${_monthAbbrev[date.month - 1]} ${date.day}';

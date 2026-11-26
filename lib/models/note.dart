@@ -9,7 +9,7 @@ class Note extends HiveObject {
   final String id;
 
   @HiveField(1)
-  final String moduleId;
+  String moduleId;
 
   @HiveField(2)
   String title;
@@ -50,6 +50,7 @@ class Note extends HiveObject {
     String? content,
     List<String>? tags,
     String? aiSource,
+    String? moduleId,
   }) async {
     if (title != null) this.title = title;
     if (content != null) this.content = content;
@@ -59,6 +60,7 @@ class Note extends HiveObject {
         ..addAll(tags);
     }
     if (aiSource != null) this.aiSource = aiSource;
+    if (moduleId != null) this.moduleId = moduleId;
     updatedAt = DateTime.now();
     await save();
   }

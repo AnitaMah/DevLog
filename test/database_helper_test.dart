@@ -464,6 +464,18 @@ void main() {
       expect((data['notes'] as List).first['tags'], ['git']);
     });
 
+    test('exportData strips control characters from note title/content/tags', () async {
+      await DatabaseHelper.addModule(Module(id: 'm1', title: 'Git'));
+      await DatabaseHelper.addNote('m1',
+          title: 'Bad\x1B[31mtitle', content: 'line1\nline2\x00\x07', tags: ['ta\x1Bg']);
+
+      final note = (DatabaseHelper.exportData()['notes'] as List).first as Map;
+
+      expect(note['title'], 'Bad[31mtitle');
+      expect(note['content'], 'line1\nline2');
+      expect(note['tags'], ['tag']);
+    });
+
     test('exportData captures aiSource', () async {
       await DatabaseHelper.addModule(Module(id: 'm1', title: 'Chats'));
       await DatabaseHelper.addNote('m1', title: 'Convo', aiSource: 'claude');

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
-import 'package:dev_log/components/app_icon_button.dart';
 import 'package:dev_log/database/database_helper.dart';
 import 'package:dev_log/models/module.dart';
 import 'package:dev_log/models/project_task.dart';
 import 'package:dev_log/theme/app_theme.dart';
 
-/// Inline checklist editor for a project [Module]'s [Module.tasks]. Every
-/// add/toggle/remove/edit/reorder persists immediately via
-/// [DatabaseHelper.updateModule] - there's no separate "Save" step, unlike
-/// the note editor's tag field.
+/// Inline checklist editor for a project [Module]'s [Module.tasks], styled
+/// as the Terminal Dark + Spatial mockup's project-detail checklist: a
+/// glass panel of hoverable rows with pill checkboxes and a drag handle,
+/// plus an "add item" row. Every add/toggle/remove/edit/reorder persists
+/// immediately via [DatabaseHelper.updateModule] - there's no separate
+/// "Save" step, unlike the note editor's tag field.
 class ProjectTaskEditor extends StatefulWidget {
   final Module module;
 
@@ -43,8 +44,8 @@ class _ProjectTaskEditorState extends State<ProjectTaskEditor> {
     await DatabaseHelper.updateModule(widget.module);
   }
 
-  Future<void> _toggleTask(ProjectTask task, bool? value) async {
-    setState(() => task.done = value ?? false);
+  Future<void> _toggleTask(ProjectTask task) async {
+    setState(() => task.done = !task.done);
     await DatabaseHelper.updateModule(widget.module);
   }
 
@@ -85,85 +86,169 @@ class _ProjectTaskEditorState extends State<ProjectTaskEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Tasks", style: AppTextStyles.title),
-        const SizedBox(height: AppSpacing.md),
-        ReorderableListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          itemCount: widget.module.tasks.length,
-          onReorderItem: _reorderTask,
-          itemBuilder: (context, index) {
-            final task = widget.module.tasks[index];
-            final isEditing = _editingTask == task;
-            return Padding(
-              key: ValueKey(task),
-              padding: const EdgeInsets.symmetric(vertical: 2),
+    return GlassPanel(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              itemCount: widget.module.tasks.length,
+              onReorderItem: _reorderTask,
+              itemBuilder: (context, index) {
+                final task = widget.module.tasks[index];
+                return _TaskRow(
+                  key: ValueKey(task),
+                  task: task,
+                  index: index,
+                  isEditing: _editingTask == task,
+                  editController: _editController,
+                  editFocusNode: _editFocusNode,
+                  onToggle: () => _toggleTask(task),
+                  onStartEditing: () => _startEditing(task),
+                  onCommitEdit: _commitEdit,
+                  onRemove: () => _removeTask(task),
+                );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
               child: Row(
                 children: [
-                  Checkbox(
-                    value: task.done,
-                    onChanged: (value) => _toggleTask(task, value),
-                  ),
+                  Icon(Icons.add, size: 16, color: AppColors.textDisabled),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: isEditing
-                        ? TextField(
-                            controller: _editController,
-                            focusNode: _editFocusNode,
-                            autofocus: true,
-                            style: TextStyle(color: AppColors.textPrimary),
-                            onSubmitted: (_) => _commitEdit(),
-                            onEditingComplete: _commitEdit,
-                            onTapOutside: (_) => _commitEdit(),
-                          )
-                        : GestureDetector(
-                            onTap: () => _startEditing(task),
-                            child: Text(
-                              task.title,
-                              style: TextStyle(
-                                color: task.done ? AppColors.textDisabled : AppColors.textPrimary,
-                                decoration: task.done ? TextDecoration.lineThrough : null,
-                              ),
-                            ),
-                          ),
-                  ),
-                  AppIconButton(
-                    icon: Icons.close,
-                    onPressed: () => _removeTask(task),
-                  ),
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Icon(Icons.drag_handle, color: AppColors.textSecondary),
+                    child: TextField(
+                      controller: _taskController,
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                        hintText: "Add item…",
+                        hintStyle: TextStyle(color: AppColors.textDisabled),
+                      ),
+                      onSubmitted: _addTask,
                     ),
                   ),
                 ],
               ),
-            );
-          },
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _taskController,
-                style: TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(hintText: "+ add task"),
-                onSubmitted: _addTask,
-              ),
             ),
-            IconButton(
-              icon: Icon(Icons.add, color: AppColors.textSecondary),
-              onPressed: () => _addTask(_taskController.text),
-            ),
+            const SizedBox(height: AppSpacing.xs),
           ],
         ),
-        const SizedBox(height: AppSpacing.xl),
-      ],
+      ),
+    );
+  }
+}
+
+/// A single checklist row: pill checkbox, title (editable on tap), drag
+/// handle, remove action - lightly highlighted on hover like the mockup's
+/// `.task-row:hover` state.
+class _TaskRow extends StatefulWidget {
+  final ProjectTask task;
+  final int index;
+  final bool isEditing;
+  final TextEditingController editController;
+  final FocusNode editFocusNode;
+  final VoidCallback onToggle;
+  final VoidCallback onStartEditing;
+  final VoidCallback onCommitEdit;
+  final VoidCallback onRemove;
+
+  const _TaskRow({
+    super.key,
+    required this.task,
+    required this.index,
+    required this.isEditing,
+    required this.editController,
+    required this.editFocusNode,
+    required this.onToggle,
+    required this.onStartEditing,
+    required this.onCommitEdit,
+    required this.onRemove,
+  });
+
+  @override
+  State<_TaskRow> createState() => _TaskRowState();
+}
+
+class _TaskRowState extends State<_TaskRow> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: _hovering ? AppColors.cardBackground : null,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
+        child: Row(
+          children: [
+            ReorderableDragStartListener(
+              index: widget.index,
+              child: Icon(Icons.drag_indicator, size: 16, color: AppColors.textDisabled),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            GestureDetector(
+              onTap: widget.onToggle,
+              child: Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: widget.task.done ? AppColors.accent : Colors.transparent,
+                  border: Border.all(
+                    color: widget.task.done ? AppColors.accent : AppColors.cardBorder,
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: widget.task.done
+                    ? Icon(Icons.check, size: 14, color: AppColors.accentOnColor)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: widget.isEditing
+                  ? TextField(
+                      controller: widget.editController,
+                      focusNode: widget.editFocusNode,
+                      autofocus: true,
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                      decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+                      onSubmitted: (_) => widget.onCommitEdit(),
+                      onEditingComplete: widget.onCommitEdit,
+                      onTapOutside: (_) => widget.onCommitEdit(),
+                    )
+                  : GestureDetector(
+                      onTap: widget.onStartEditing,
+                      child: Text(
+                        widget.task.title,
+                        style: TextStyle(
+                          color: widget.task.done ? AppColors.textDisabled : AppColors.textPrimary,
+                          fontSize: 14,
+                          decoration: widget.task.done ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                    ),
+            ),
+            if (_hovering)
+              GestureDetector(
+                onTap: widget.onRemove,
+                child: Icon(Icons.close, size: 16, color: AppColors.textDisabled),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

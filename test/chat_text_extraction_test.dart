@@ -29,4 +29,18 @@ void main() {
 
     expect(extractTextFromHtml(html), 'Nested');
   });
+
+  test('extractTextFromHtml survives deep nesting without stack overflow', () {
+    final html = StringBuffer('<body>');
+    for (var i = 0; i < 8000; i++) {
+      html.write('<div>');
+    }
+    html.write('Deep');
+    for (var i = 0; i < 8000; i++) {
+      html.write('</div>');
+    }
+    html.write('</body>');
+
+    expect(() => extractTextFromHtml(html.toString()), returnsNormally);
+  });
 }

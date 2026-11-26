@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 
 import 'package:dev_log/database/database_helper.dart';
@@ -99,12 +100,22 @@ Future<AiSource?> _promptForAiSource(BuildContext context) {
   );
 }
 
+/// How long a single file's HTML/PDF text extraction gets before it's
+/// treated as failed (and the file skipped, same as an unreadable file).
+/// Extraction runs via [compute] in a background isolate rather than
+/// inline, so a file that hits this - a huge or corrupted export the
+/// parser chokes on - can't block the UI thread or stall the rest of the
+/// import batch.
+const _extractionTimeout = Duration(seconds: 20);
+
 Future<String> _extractChatContent(File file) async {
   final ext = extensionOf(file.path);
   if (ext == 'pdf') {
-    return extractTextFromPdf(await file.readAsBytes());
+    final bytes = await file.readAsBytes();
+    return compute(extractTextFromPdf, bytes).timeout(_extractionTimeout);
   }
-  return extractTextFromHtml(await file.readAsString());
+  final html = await file.readAsString();
+  return compute(extractTextFromHtml, html).timeout(_extractionTimeout);
 }
 
 /// Strips the extension so a note isn't titled "conversation.html".

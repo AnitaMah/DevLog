@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../helpers/id_generator.dart';
 import '../models/activity_item.dart';
@@ -15,16 +16,50 @@ class DatabaseHelper {
   static const String _notesBox = 'notes';
   static const String _noteDraftsBox = 'noteDrafts';
 
+  static const _secureStorage = FlutterSecureStorage();
+  static const _encryptionKeyName = 'hive_encryption_key';
+
+  /// The AES key lives in the platform keystore/keychain, not in the Hive
+  /// files themselves - losing it (e.g. clearing secure storage without
+  /// clearing app data) makes the boxes unreadable.
+  static Future<HiveAesCipher> _loadOrCreateCipher() async {
+    final existing = await _secureStorage.read(key: _encryptionKeyName);
+    if (existing != null) {
+      return HiveAesCipher(base64Url.decode(existing));
+    }
+    final key = Hive.generateSecureKey();
+    await _secureStorage.write(key: _encryptionKeyName, value: base64UrlEncode(key));
+    return HiveAesCipher(key);
+  }
+
+  /// Opens [name] with [cipher]. A box written before encryption was added
+  /// fails the cipher's checksum on open - in that case, read it back in
+  /// plaintext once and rewrite it encrypted in place.
+  static Future<Box<T>> _openEncryptedBox<T>(String name, HiveAesCipher cipher) async {
+    try {
+      return await Hive.openBox<T>(name, encryptionCipher: cipher);
+    } on HiveError {
+      final plain = await Hive.openBox<T>(name);
+      final entries = Map<dynamic, T>.from(plain.toMap());
+      await plain.close();
+      await Hive.deleteBoxFromDisk(name);
+      final encrypted = await Hive.openBox<T>(name, encryptionCipher: cipher);
+      await encrypted.putAll(entries);
+      return encrypted;
+    }
+  }
+
   static Future<void> init() async {
     await Hive.initFlutter();
     Hive.registerAdapter(ModuleAdapter());
     Hive.registerAdapter(UserModelAdapter());
     Hive.registerAdapter(NoteAdapter());
     Hive.registerAdapter(ProjectTaskAdapter());
-    await Hive.openBox<Module>(_modulesBox);
-    await Hive.openBox<UserModel>(_userBox);
-    await Hive.openBox<Note>(_notesBox);
-    await Hive.openBox(_noteDraftsBox);
+    final cipher = await _loadOrCreateCipher();
+    await _openEncryptedBox<Module>(_modulesBox, cipher);
+    await _openEncryptedBox<UserModel>(_userBox, cipher);
+    await _openEncryptedBox<Note>(_notesBox, cipher);
+    await _openEncryptedBox<dynamic>(_noteDraftsBox, cipher);
 
     // Restore the saved light/dark preference, if any.
     if (_users.isNotEmpty) {
@@ -132,8 +167,8 @@ class DatabaseHelper {
   }
 
   static Future<void> updateNote(Note note,
-      {String? title, String? content, List<String>? tags, String? aiSource}) async {
-    await note.update(title: title, content: content, tags: tags, aiSource: aiSource);
+      {String? title, String? content, List<String>? tags, String? aiSource, String? moduleId}) async {
+    await note.update(title: title, content: content, tags: tags, aiSource: aiSource, moduleId: moduleId);
   }
 
   static Future<void> deleteNote(String noteId) async {
@@ -241,6 +276,13 @@ class DatabaseHelper {
 
   // --- Export / Import ---
 
+  /// Strips control characters (anything but tab/newline/carriage return)
+  /// from exported note text and tags - leftover paste artifacts or an
+  /// attempt to smuggle terminal escape sequences into a file that gets
+  /// written and re-displayed verbatim.
+  static String _sanitizeForExport(String value) =>
+      value.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
+
   /// A JSON-serializable snapshot of every module and note.
   static Map<String, dynamic> exportData() {
     return {
@@ -272,11 +314,11 @@ class DatabaseHelper {
           .map((n) => {
                 'id': n.id,
                 'moduleId': n.moduleId,
-                'title': n.title,
-                'content': n.content,
+                'title': _sanitizeForExport(n.title),
+                'content': _sanitizeForExport(n.content),
                 'createdAt': n.createdAt.toIso8601String(),
                 'updatedAt': n.updatedAt.toIso8601String(),
-                'tags': n.tags,
+                'tags': n.tags.map(_sanitizeForExport).toList(),
                 'aiSource': n.aiSource,
               })
           .toList(),

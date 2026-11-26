@@ -10,8 +10,9 @@ import 'package:dev_log/screens/module_details_screen.dart';
 
 /// Renders a submodule row (used inside [ModuleDetailsScreen]'s
 /// "Submodules" grid). Tapping opens the submodule's own notes/submodules;
-/// the trailing icons let you rename or delete it. (The dashboard's
-/// "Projects" section uses the bolder [ProjectHeroCard] instead.)
+/// the trailing icons let you rename or delete it. Styled as a glass card
+/// to match the Terminal Dark + Spatial mockup's module cards (e.g. Home's
+/// module grid), rather than a flat list row.
 class ModuleTile extends StatelessWidget {
   final Module module;
 
@@ -19,29 +20,10 @@ class ModuleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.cardBackground,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        side: BorderSide(color: AppColors.cardBorder),
-      ),
-      child: ListTile(
-        leading: IconHelper.getFaIcon(module.iconName, size: 18, color: AppColors.accent),
-        title: Row(
-          children: [
-            Flexible(
-              child: Text(module.title, style: AppTextStyles.cardTitle, overflow: TextOverflow.ellipsis),
-            ),
-            if (module.isProject) ...[
-              const SizedBox(width: 6),
-              ProjectStatusBadge(status: module.status, completionPercent: module.taskCompletionPercent),
-            ],
-          ],
-        ),
-        subtitle: module.description.isNotEmpty
-            ? Text(module.description, style: AppTextStyles.cardSubtitle, overflow: TextOverflow.ellipsis)
-            : null,
+    final (bg, fg) = AppColors.moduleColorFor(module.title);
+
+    return GlassPanel(
+      child: InkWell(
         onTap: () {
           module.updateLastOpenedAt();
           Navigator.push(
@@ -49,21 +31,67 @@ class ModuleTile extends StatelessWidget {
             MaterialPageRoute(builder: (_) => ModuleDetailsScreen(module: module)),
           );
         },
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIconButton(
-              icon: Icons.edit_outlined,
-              onPressed: () => showDialog(
-                context: context,
-                builder: (c) => ModuleInputDialog(module: module, isEditing: true),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: IconHelper.getFaIcon(module.iconName, size: 16, color: fg),
               ),
-            ),
-            AppIconButton(
-              icon: Icons.close,
-              onPressed: () => confirmAndDeleteModule(context, module),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            module.title,
+                            style: AppTextStyles.cardTitle,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (module.isProject) ...[
+                          const SizedBox(width: 6),
+                          ProjectStatusBadge(
+                            status: module.status,
+                            completionPercent: module.taskCompletionPercent,
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (module.description.isNotEmpty)
+                      Text(
+                        module.description,
+                        style: AppTextStyles.cardSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              AppIconButton(
+                icon: Icons.edit_outlined,
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (c) => ModuleInputDialog(module: module, isEditing: true),
+                ),
+              ),
+              AppIconButton(
+                icon: Icons.close,
+                onPressed: () => confirmAndDeleteModule(context, module),
+              ),
+            ],
+          ),
         ),
       ),
     );

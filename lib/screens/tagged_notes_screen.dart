@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:dev_log/models/note.dart';
 import 'package:dev_log/database/database_helper.dart';
+import 'package:dev_log/components/app_icon_button.dart';
 import 'package:dev_log/components/note_tile.dart';
+import 'package:dev_log/layout/spatial_shell.dart';
 import 'package:dev_log/theme/app_theme.dart';
 
 /// Lists every note carrying a given tag. Reached by tapping a chip in
@@ -51,39 +53,67 @@ class _TaggedNotesScreenState extends State<TaggedNotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Pushed via Navigator.push as its own full-screen route, so it sits
+    // outside DashboardScreen's SpatialShell - wrap here too, same as
+    // NoteEditorScreen, otherwise it drops the floating-window chrome/room
+    // background the rest of the app has.
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.cardBackground,
-        title: Text('#${widget.tag}'),
-      ),
-      body: ValueListenableBuilder<Box<Note>>(
-        valueListenable: Hive.box<Note>('notes').listenable(),
-        builder: (context, box, _) {
-          final notes = DatabaseHelper.getNotesByTag(widget.tag)
-            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      body: SpatialShell(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppSpacing.lg,
+              AppSpacing.xl,
+              AppSpacing.xl,
+            ),
+            child: ValueListenableBuilder<Box<Note>>(
+              valueListenable: Hive.box<Note>('notes').listenable(),
+              builder: (context, box, _) {
+                final notes = DatabaseHelper.getNotesByTag(widget.tag)
+                  ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                child: _buildJumpToTag(),
-              ),
-              Expanded(
-                child: notes.isEmpty
-                    ? Center(
-                        child: Text("No notes tagged '${widget.tag}' anymore.",
-                            style: TextStyle(color: AppColors.textDisabled)),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.all(24),
-                        children: notes.map((note) => NoteTile(note: note)).toList(),
-                      ),
-              ),
-            ],
-          );
-        },
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBreadcrumb(),
+                    const SizedBox(height: AppSpacing.md),
+                    _buildJumpToTag(),
+                    const SizedBox(height: AppSpacing.md),
+                    Expanded(
+                      child: notes.isEmpty
+                          ? Center(
+                              child: Text(
+                                "No notes tagged '${widget.tag}' anymore.",
+                                style: TextStyle(color: AppColors.textDisabled),
+                              ),
+                            )
+                          : ListView(
+                              children: notes.map((note) => NoteTile(note: note)).toList(),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildBreadcrumb() {
+    return Row(
+      children: [
+        AppIconButton(icon: Icons.arrow_back, onPressed: () => Navigator.pop(context)),
+        const SizedBox(width: AppSpacing.sm),
+        Text('~/tags', style: AppTextStyles.mono.copyWith(color: AppColors.accent)),
+        Text(' / ', style: AppTextStyles.mono),
+        Expanded(
+          child: Text('#${widget.tag}', style: AppTextStyles.mono, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ],
     );
   }
 
@@ -91,31 +121,30 @@ class _TaggedNotesScreenState extends State<TaggedNotesScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.tag, size: 16, color: AppColors.textDisabled),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: TextField(
-                  controller: _jumpController,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: "Jump to tag…",
-                    hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 13),
-                    isDense: true,
-                    border: InputBorder.none,
+        GlassPanel(
+          borderRadius: BorderRadius.circular(AppRadius.input),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            height: 44,
+            child: Row(
+              children: [
+                Icon(Icons.tag, size: 16, color: AppColors.textDisabled),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: TextField(
+                    controller: _jumpController,
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: "Jump to tag…",
+                      hintStyle: TextStyle(color: AppColors.textDisabled, fontSize: 13),
+                      isDense: true,
+                      border: InputBorder.none,
+                    ),
+                    onSubmitted: _jumpToTag,
                   ),
-                  onSubmitted: _jumpToTag,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         ValueListenableBuilder<TextEditingValue>(

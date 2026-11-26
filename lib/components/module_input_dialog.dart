@@ -14,11 +14,17 @@ class ModuleInputDialog extends StatefulWidget {
   final String? parentId;
   final bool isEditing;
 
+  /// Pre-checks "This is a project" when creating a new module (ignored
+  /// when [isEditing] - an existing module's own value wins instead) - lets
+  /// the Projects screen's "+ New project" button skip the extra toggle.
+  final bool initialIsProject;
+
   const ModuleInputDialog({
     super.key,
     this.module,
     this.parentId,
     this.isEditing = false,
+    this.initialIsProject = false,
   });
 
   @override
@@ -42,7 +48,7 @@ class _ModuleInputDialogState extends State<ModuleInputDialog> {
         TextEditingController(text: widget.module?.description ?? '');
     _repoUrlController = TextEditingController(text: widget.module?.repoUrl ?? '');
     _selectedIcon = widget.module?.iconName ?? 'folder';
-    _isProject = widget.module?.isProject ?? false;
+    _isProject = widget.module?.isProject ?? widget.initialIsProject;
     _status = widget.module?.status ?? 'in_progress';
     _deadline = widget.module?.deadline;
   }

@@ -18,42 +18,61 @@ class TagsScreen extends StatelessWidget {
       builder: (context, _, _) {
         final tags = DatabaseHelper.getAllTagsWithCounts();
 
-        if (tags.isEmpty) {
-          return Center(
-            child: Text(
-              "No tags yet — add some while editing a note.",
-              style: TextStyle(color: AppColors.textDisabled),
-            ),
-          );
-        }
-
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: tags.map((entry) {
-              final color = AppColors.tagColorFor(entry.key);
-              return InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => TaggedNotesScreen(tag: entry.key)),
+          padding: const EdgeInsets.fromLTRB(48, 40, 48, 56),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1080),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Tags", style: AppTextStyles.header.copyWith(fontSize: 32)),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  "Every tag used across your notes — tap one to see those notes.",
+                  style: AppTextStyles.body,
                 ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    border: Border.all(color: color.withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    "${entry.key}  ${entry.value}",
-                    style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+                const SizedBox(height: AppSpacing.xl),
+                GlassPanel(
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    width: double.infinity,
+                    child: tags.isEmpty
+                        ? Text(
+                            "No tags yet — add some while editing a note.",
+                            style: AppTextStyles.smallText,
+                          )
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: tags.map((entry) {
+                              final color = AppColors.tagColorFor(entry.key);
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(AppRadius.lg),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => TaggedNotesScreen(tag: entry.key),
+                                  ),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                                    border: Border.all(color: color.withValues(alpha: 0.4)),
+                                  ),
+                                  child: Text(
+                                    "${entry.key}  ${entry.value}",
+                                    style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                   ),
                 ),
-              );
-            }).toList(),
+              ],
+            ),
           ),
         );
       },
