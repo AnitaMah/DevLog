@@ -35,53 +35,60 @@ class _SpatialShellState extends State<SpatialShell> {
       children: [
         const Positioned.fill(child: RoomPassthrough()),
         Padding(
-          padding: const EdgeInsets.all(4),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              boxShadow: AppColors.isDark
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        blurRadius: 100,
-                        offset: const Offset(0, 50),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(26),
-              // No opaque fill of its own - [RoomPassthrough] shows
-              // straight through everywhere the app doesn't cover with
-              // its own (glass) surfaces, same as the mockup's
-              // `.app`/`.content` having no background of their own.
-              // (RoomPassthrough itself falls back to a flat
-              // AppColors.background in light mode.)
-              child: MouseRegion(
-                onHover: (e) => _cursor.value = e.localPosition,
-                onExit: (_) => _cursor.value = null,
-                child: Stack(
-                  children: [
-                    // The mockup's `.liquid-light` - a soft white glow
-                    // that follows the cursor, sitting BEHIND the chrome
-                    // and content so the glass panels' own blur picks it
-                    // up (same z-order as `.liquid-light`'s z-index:0 vs.
-                    // `.window-chrome`/`.app`'s z-index:1).
-                    ValueListenableBuilder<Offset?>(
-                      valueListenable: _cursor,
-                      builder: (context, cursor, _) =>
-                          _LiquidLight(cursor: cursor),
-                    ),
-                    Column(
+          padding: const EdgeInsets.all(10),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1480),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                  boxShadow: AppColors.isDark
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            blurRadius: 100,
+                            offset: const Offset(0, 50),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  // No opaque fill of its own - [RoomPassthrough] shows
+                  // straight through everywhere the app doesn't cover with
+                  // its own (glass) surfaces, same as the mockup's
+                  // `.app`/`.content` having no background of their own.
+                  // (RoomPassthrough itself falls back to a flat
+                  // AppColors.background in light mode.)
+                  child: MouseRegion(
+                    onHover: (e) => _cursor.value = e.localPosition,
+                    onExit: (_) => _cursor.value = null,
+                    child: Stack(
                       children: [
-                        const _WindowChrome(),
-                        Expanded(child: widget.child),
-                        const _GestureBar(),
-                        const _WindowGrabBar(),
+                        // The mockup's `.liquid-light` - a soft white glow
+                        // that follows the cursor, sitting BEHIND the chrome
+                        // and content so the glass panels' own blur picks it
+                        // up (same z-order as `.liquid-light`'s z-index:0 vs.
+                        // `.window-chrome`/`.app`'s z-index:1).
+                        ValueListenableBuilder<Offset?>(
+                          valueListenable: _cursor,
+                          builder: (context, cursor, _) =>
+                              _LiquidLight(cursor: cursor),
+                        ),
+                        Column(
+                          children: [
+                            const _WindowChrome(),
+                            Expanded(child: widget.child),
+                            const _GestureBar(),
+                            const _WindowGrabBar(),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),

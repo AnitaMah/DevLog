@@ -296,6 +296,38 @@ class AnchorBadge extends StatelessWidget {
   }
 }
 
+/// A bordered square icon button (distinct from the pill-shaped
+/// [AppButtonSize.compact] buttons elsewhere) - matches the Terminal Dark
+/// reference's theme-toggle button style. Used by the sidebar footer and
+/// by full-screen routes (e.g. [ModuleDetailsScreen]) for header actions.
+class AppIconButtonSquare extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  const AppIconButtonSquare({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      onTap: onPressed,
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.cardBorder),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, size: 16, color: AppColors.textSecondary),
+      ),
+    );
+  }
+}
+
 class AppSpacing {
   static const double xs = 4.0;
   static const double sm = 8.0;
