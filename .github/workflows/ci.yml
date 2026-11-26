@@ -25,3 +25,15 @@ jobs:
       - run: flutter analyze --no-fatal-infos
 
       - run: flutter test
+
+      # Surfaces outdated deps (incl. file_picker, syncfusion_flutter_pdf,
+      # html) without failing the build - informational only.
+      - run: flutter pub outdated || true
+
+      # OSV-Scanner checks pubspec.lock against the OSV vulnerability
+      # database. Fails the build if a known-vulnerable version is pinned.
+      - name: Dependency vulnerability scan
+        uses: google/osv-scanner-action@v2.0.3
+        with:
+          scan-args: |-
+            --lockfile=pubspec.lock
